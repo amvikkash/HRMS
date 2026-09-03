@@ -204,16 +204,17 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
 }
 
 function NavItem({ item, isFavorite, onToggleFavorite }) {
+  const location = useLocation();
+  const isActive = isNavItemActive(item, location);
+
   return (
     <div className="hz-sidebar-item position-relative mx-2 mb-1">
       <NavLink
         to={item.to}
         end={item.end}
-        className={({ isActive }) =>
-          `hz-sidebar-link hz-flyout-link d-flex align-items-center gap-3 px-3 py-2 text-decoration-none rounded-3 ${
-            isActive ? 'hz-nav-active' : 'hz-nav-inactive'
-          }`
-        }
+        className={`hz-sidebar-link hz-flyout-link d-flex align-items-center gap-3 px-3 py-2 text-decoration-none rounded-3 ${
+          isActive ? 'hz-nav-active' : 'hz-nav-inactive'
+        }`}
       >
         <item.icon size={18} strokeWidth={2} style={{ flexShrink: 0 }} />
         <span className="text-truncate">{item.label}</span>
@@ -235,6 +236,16 @@ function NavItem({ item, isFavorite, onToggleFavorite }) {
       )}
     </div>
   );
+}
+
+function isNavItemActive(item, location) {
+  const [itemPath, itemQuery = ''] = item.to.split('?');
+  const pathMatches = item.end
+    ? location.pathname === itemPath
+    : location.pathname === itemPath || location.pathname.startsWith(`${itemPath}/`);
+
+  if (!pathMatches) return false;
+  return new URLSearchParams(itemQuery).toString() === new URLSearchParams(location.search).toString();
 }
 
 function sectionDescription(id) {

@@ -3,8 +3,11 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Users, UserCheck, CalendarOff, Clock3, Inbox, FileText, ArrowRight, ClipboardCheck, PencilLine, Sparkles, Plus, BarChart3, BriefcaseBusiness, Settings2, WalletCards, TrendingUp, LifeBuoy, PackageOpen } from 'lucide-react';
 import { dashboardApi } from '../api/endpoints/dashboard';
-import { leaveRequestsApi } from '../api/endpoints/leave';
+import { holidaysApi, leaveRequestsApi } from '../api/endpoints/leave';
 import { documentsApi, DOCUMENT_TYPE_LABEL } from '../api/endpoints/documents';
+import { employeesApi } from '../api/endpoints/employees';
+import { attendanceApi } from '../api/endpoints/attendance';
+import { employeeSalaryApi } from '../api/endpoints/salary';
 import Card from '../components/ui/Card';
 import Avatar from '../components/ui/Avatar';
 import EmptyState from '../components/ui/EmptyState';
@@ -112,7 +115,7 @@ export default function Dashboard() {
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening';
 
   if (hasRole('EMPLOYEE')) {
-    return <EmployeeDashboard firstName={firstName} greeting={greeting} today={today} />;
+    return <EmployeeDashboard employeeId={user?.employeeId} firstName={firstName} greeting={greeting} today={today} />;
   }
 
   const attentionItems = [
@@ -219,7 +222,54 @@ export default function Dashboard() {
   );
 }
 
-function EmployeeDashboard({ firstName, greeting, today }) {
+function EmployeeDashboard({ employeeId, firstName, greeting, today }) {
+  const year = new Date().getFullYear();
+  const { data: employee } = useQuery({
+    queryKey: ['employee-dashboard-profile', employeeId],
+    queryFn: () => employeesApi.getById(employeeId),
+    enabled: !!employeeId,
+  });
+  const { data: attendance = [], isLoading: attendanceLoading } = useQuery({
+    queryKey: ['employee-dashboard-attendance', employeeId],
+    queryFn: () => attendanceApi.byEmployee(employeeId),
+    enabled: !!employeeId,
+  });
+  const { data: leaveBalance = [], isLoading: leaveLoading } = useQuery({
+    queryKey: ['employee-dashboard-leave-balance', employeeId, year],
+    queryFn: () => leaveRequestsApi.balance(employeeId, year),
+    enabled: !!employeeId,
+  });
+  const { data: leaveRequests = [] } = useQuery({
+    queryKey: ['employee-dashboard-leave', employeeId],
+    queryFn: () => leaveRequestsApi.byEmployee(employeeId),
+    enabled: !!employeeId,
+  });
+  const { data: documents = [] } = useQuery({
+    queryKey: ['employee-dashboard-documents', employeeId],
+    queryFn: () => documentsApi.byEmployee(employeeId),
+    enabled: !!employeeId,
+  });
+  const { data: salary } = useQuery({
+    queryKey: ['employee-dashboard-salary', employeeId],
+    queryFn: () => employeeSalaryApi.getDetail(employeeId),
+    enabled: !!employeeId,
+  });
+  const { data: holidays = [] } = useQuery({
+    queryKey: ['employee-dashboard-holidays'],
+    queryFn: holidaysApi.list,
+    enabled: !!employeeId,
+  });
+
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayPunches = attendance.filter((record) => record.punchTime?.slice(0, 10) === todayKey);
+  const hasCheckedIn = todayPunches.some((record) => record.punchType === 'IN');
+  const hasCheckedOut = todayPunches.some((record) => record.punchType === 'OUT');
+  const nextHoliday = holidays
+    .filter((holiday) => holiday.date >= todayKey)
+    .sort((first, second) => first.date.localeCompare(second.date))[0];
+  const pendingLeave = leaveRequests.filter((request) => request.status === 'PENDING').length;
+  const totalRemainingLeave = leaveBalance.reduce((total, item) => total + (item.remainingDays || 0), 0);
+
   const services = [
     { title: 'My Profile', description: 'Keep your personal and employment details close at hand.', icon: UserCheck, to: '/my-profile' },
     { title: 'Attendance', description: 'Review your recorded punches and attendance history.', icon: Clock3, to: '/my-profile?tab=attendance' },
@@ -239,6 +289,12 @@ function EmployeeDashboard({ firstName, greeting, today }) {
         </div>
         <div className="hz-dashboard__welcome-mark" aria-hidden="true"><UserCheck size={21} /></div>
       </header>
+      <section className="hz-dashboard__employee-status-grid" aria-label="Employee overview">
+        <EmployeeMetric icon={Clock3} label="Today" value={attendanceLoading ? '...' : hasCheckedOut ? 'Checked out' : hasCheckedIn ? 'Checked in' : 'Not recorded'} detail={hasCheckedIn ? (hasCheckedOut ? 'Attendance complete' : 'Have a productive day') : 'Your attendance status'} tone="blue" />
+        <EmployeeMetric icon={CalendarOff} label="Leave balance" value={leaveLoading ? '...' : `${totalRemainingLeave} days`} detail={`${year} remaining across leave types`} tone="green" />
+        <EmployeeMetric icon={WalletCards} label="My pay" value={salary?.currentStructure ? 'Available' : 'Not configured'} detail={salary?.currentStructure ? 'View salary and payslips' : 'Contact HR for details'} tone="gold" />
+        <EmployeeMetric icon={CalendarDays} label="Next holiday" value={nextHoliday?.name || 'None scheduled'} detail={nextHoliday?.date ? new Date(`${nextHoliday.date}T00:00:00`).toLocaleDateString() : 'Company calendar'} tone="coral" />
+      </section>
       <section className="hz-dashboard__explore" aria-labelledby="employee-services-title">
         <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Employee services</span><h2 id="employee-services-title">Your workspace</h2></div></div>
         <div className="hz-dashboard__module-grid">
@@ -251,6 +307,23 @@ function EmployeeDashboard({ firstName, greeting, today }) {
           ))}
         </div>
       </section>
+      <div className="hz-dashboard__primary-grid">
+        <section className="hz-dashboard__surface" aria-labelledby="employee-actions-title">
+          <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Stay on track</span><h2 id="employee-actions-title">Pending actions</h2></div></div>
+          <div className="hz-dashboard__attention-list">
+            <Link to="/my-profile?tab=leave" className="hz-dashboard__attention-row"><span className="hz-dashboard__row-icon"><CalendarOff size={18} /></span><span className="hz-dashboard__row-copy"><strong>Leave requests</strong><small>{pendingLeave ? `${pendingLeave} request${pendingLeave === 1 ? '' : 's'} awaiting review` : 'No pending leave requests'}</small></span><ArrowRight size={16} /></Link>
+            <Link to="/my-profile?tab=documents" className="hz-dashboard__attention-row"><span className="hz-dashboard__row-icon"><FileText size={18} /></span><span className="hz-dashboard__row-copy"><strong>Documents</strong><small>{documents.length ? `${documents.length} document${documents.length === 1 ? '' : 's'} on your record` : 'No documents on your record yet'}</small></span><ArrowRight size={16} /></Link>
+          </div>
+        </section>
+        <section className="hz-dashboard__surface" aria-labelledby="employee-identity-title">
+          <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Your record</span><h2 id="employee-identity-title">Employee details</h2></div></div>
+          <div className="d-flex align-items-center gap-3 p-3" style={{ background: 'var(--hz-gray-50)', borderRadius: 10 }}>
+            <Avatar name={employee?.fullName || firstName} src={employee?.profilePhotoUrl} size="lg" />
+            <div><strong>{employee?.fullName || firstName || 'Employee'}</strong><small className="d-block text-secondary-hz">{employee?.designationTitle || 'Employee'}{employee?.departmentName ? ` · ${employee.departmentName}` : ''}</small></div>
+          </div>
+          <Link to="/my-profile" className="hz-dashboard__text-link mt-3 d-inline-flex">Open my profile <ArrowRight size={15} /></Link>
+        </section>
+      </div>
       <section className="hz-dashboard__support-strip" aria-labelledby="employee-support-title">
         <div><span className="hz-dashboard__section-kicker">Need a hand?</span><h2 id="employee-support-title">Support information</h2><p>Reach the right team for your Vettri HRMS questions.</p></div>
         <Link to="/support" className="hz-dashboard__text-link">View support info <ArrowRight size={15} /></Link>
@@ -258,4 +331,8 @@ function EmployeeDashboard({ firstName, greeting, today }) {
       </section>
     </div>
   );
+}
+
+function EmployeeMetric({ icon: Icon, label, value, detail, tone }) {
+  return <article className={`hz-dashboard__employee-metric hz-dashboard__employee-metric--${tone}`}><span className="hz-dashboard__employee-metric-icon"><Icon size={18} /></span><div><span>{label}</span><strong>{value}</strong><small>{detail}</small></div></article>;
 }

@@ -10,11 +10,14 @@ import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
 import { SkeletonText } from '../../components/ui/Skeleton';
 import InterviewDecisionModal from './InterviewDecisionModal';
+import { useAuth } from '../../hooks/useAuth';
 
 const ROUND_LABEL = { 2: 'Manager Interview', 3: 'Final Interview' };
 
 export default function MyInterviews() {
   const [decisionFor, setDecisionFor] = useState(null);
+  const { hasPermission } = useAuth();
+  const canDecide = hasPermission('INTERVIEW_DECISION') || hasPermission('RECRUITMENT_MANAGE');
   const { data: interviews, isLoading, isError, refetch } = useQuery({
     queryKey: ['my-interviews'],
     queryFn: interviewsApi.my,
@@ -25,7 +28,7 @@ export default function MyInterviews() {
       <div>
         <h2 style={{ fontSize: 'var(--hz-text-xl)', fontWeight: 700, margin: 0 }}>My Interviews</h2>
         <p style={{ fontSize: 'var(--hz-text-sm)', color: 'var(--hz-text-secondary)', margin: 0 }}>
-          Candidates assigned to you for interview
+          {canDecide ? 'Candidates assigned to you for interview' : 'Interviews assigned to you'}
         </p>
       </div>
 
@@ -40,7 +43,7 @@ export default function MyInterviews() {
 
         {!isLoading && !isError && (!interviews || interviews.length === 0) && (
           <div className="p-4">
-            <EmptyState icon={CalendarClock} title="No interviews assigned" description="Candidates HR assigns to you will show up here." />
+            <EmptyState icon={CalendarClock} title="No interviews assigned" description={canDecide ? 'Candidates HR assigns to you will show up here.' : 'Interviews assigned to you will show up here.'} />
           </div>
         )}
 
@@ -98,7 +101,7 @@ export default function MyInterviews() {
                 </div>
 
                 <div className="d-flex align-items-start">
-                  {iv.status !== 'COMPLETED' && (
+                  {canDecide && iv.status !== 'COMPLETED' && (
                     <Button onClick={() => setDecisionFor(iv)}>Submit Decision</Button>
                   )}
                 </div>

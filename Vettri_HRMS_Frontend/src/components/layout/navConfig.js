@@ -8,6 +8,7 @@ import {
   CalendarClock,
   TrendingUp,
   FileBarChart,
+  FileText,
   ShieldCheck,
   ScrollText,
   Building2,
@@ -45,14 +46,22 @@ import {
  */
 export const NAV_SECTIONS = [
   {
-    id: 'employee-workspace',
-    label: 'My Work',
+    id: 'employee-home',
+    label: 'Home',
+    description: 'Your Vettri HRMS workspace at a glance',
+    role: 'EMPLOYEE',
+    collapsible: true,
+    badge: null,
+    items: [{ to: '/dashboard', icon: LayoutDashboard, label: 'Home', end: true }],
+  },
+  {
+    id: 'employee-me',
+    label: 'Me',
     description: 'Your profile, time, pay, and employee services',
     role: 'EMPLOYEE',
     collapsible: true,
     badge: null,
     items: [
-      { to: '/dashboard', icon: LayoutDashboard, label: 'Home', end: true },
       { to: '/my-profile', icon: UserRound, label: 'My Profile' },
       { to: '/my-profile?tab=job', icon: Briefcase, label: 'My Job' },
       { to: '/my-profile?tab=attendance', icon: Clock, label: 'Attendance' },
@@ -60,8 +69,57 @@ export const NAV_SECTIONS = [
       { to: '/my-payslip', icon: Wallet, label: 'My Salary / Payroll' },
       { to: '/my-profile?tab=documents', icon: FileText, label: 'My Documents' },
       { to: '/my-profile?tab=assets', icon: PackageOpen, label: 'My Assets' },
+      { to: '/my-interviews', icon: CalendarClock, label: 'My Interviews', permission: 'INTERVIEW_DECISION' },
+    ],
+  },
+  {
+    id: 'employee-inbox',
+    label: 'Inbox',
+    description: 'Updates and actions related to your account',
+    role: 'EMPLOYEE',
+    collapsible: true,
+    badge: null,
+    items: [
       { to: '/notifications', icon: Bell, label: 'Notifications' },
     ],
+  },
+  {
+    id: 'employee-team',
+    label: 'My Team',
+    description: 'Leave and team workflows assigned to you',
+    role: 'EMPLOYEE',
+    permission: 'LEAVE_APPROVE',
+    collapsible: true,
+    badge: null,
+    items: [{ to: '/leave', icon: Users, label: 'Team Leave' }],
+  },
+  {
+    id: 'employee-finances',
+    label: 'My Finances',
+    description: 'Your salary and payroll information',
+    role: 'EMPLOYEE',
+    collapsible: true,
+    badge: null,
+    items: [{ to: '/my-payslip', icon: Wallet, label: 'My Pay' }],
+  },
+  {
+    id: 'employee-performance',
+    label: 'Performance',
+    description: 'Your goals and performance reviews',
+    role: 'EMPLOYEE',
+    permission: 'PERFORMANCE_VIEW',
+    collapsible: true,
+    badge: null,
+    items: [{ to: '/performance', icon: TrendingUp, label: 'My Performance' }],
+  },
+  {
+    id: 'employee-apps',
+    label: 'Apps',
+    description: 'Vettri HRMS services and support',
+    role: 'EMPLOYEE',
+    collapsible: true,
+    badge: null,
+    items: [{ to: '/support', icon: LifeBuoy, label: 'Support' }],
   },
   {
     id: 'root',
@@ -181,6 +239,17 @@ export function findNavItemByPath(path) {
  *  assumed open to any authenticated user (matches today's backend reality
  *  for modules that haven't had permission codes carved out yet). */
 export function visibleNavSections(hasPermission, hasRole = () => false) {
+  if (hasRole('EMPLOYEE')) {
+    return NAV_SECTIONS.map((section) => {
+      if (section.role !== 'EMPLOYEE') return null;
+      const sectionPermission = section.permission;
+      const items = section.items.filter((item) => !item.permission || hasPermission(item.permission));
+      return (!sectionPermission || hasPermission(sectionPermission)) && items.length > 0
+        ? { ...section, items }
+        : null;
+    }).filter(Boolean);
+  }
+
   return NAV_SECTIONS.map((section) => {
     const items = section.items.filter((item) => {
       const required = item.permission || section.permission;
