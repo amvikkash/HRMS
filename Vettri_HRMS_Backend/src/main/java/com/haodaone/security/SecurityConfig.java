@@ -93,6 +93,8 @@
             http = http.authorizeHttpRequests(auth -> auth
                                 .requestMatchers("/api/auth/login", "/api/auth/refresh", "/api/auth/logout",
                                     "/api/auth/invitation/**", "/api/auth/activate", "/api/auth/activate/**").permitAll()
+                            .requestMatchers("/api/interviews/my").authenticated()
+                                    .requestMatchers("/api/holidays").authenticated()
                             .requestMatchers("/api/monitoring/**", "/api/audit/**",
                                     "/api/departments/**", "/api/designations/**", "/api/teams/**",
                                     "/api/candidates/**", "/api/interviews/**", "/api/job-openings/**",
