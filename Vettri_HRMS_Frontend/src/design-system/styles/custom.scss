@@ -1,0 +1,151 @@
+// ==========================================================
+// Bootstrap, fully customized to Vettri HRMS's design language.
+// Every override below happens BEFORE Bootstrap's own SCSS is imported -
+// that's the only way variable overrides actually take effect. Values
+// intentionally mirror tokens.css so the two systems don't drift apart.
+// ==========================================================
+
+// ---- Color system ----
+$primary: #2563eb;
+$secondary: #64748b;
+$success: #159a72;
+$info: #0284c7;
+$warning: #d97706;
+$danger: #dc2626;
+$light: #f5f8fc;
+$dark: #172033;
+
+// ---- Typography ----
+$font-family-sans-serif: 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
+$font-size-base: 0.9375rem;
+$line-height-base: 1.55;
+$headings-font-weight: 600;
+$font-weight-bold: 600;
+
+// ---- Radii - soft, rounded, never sharp corners ----
+$border-radius: 0.5rem;
+$border-radius-sm: 0.3rem;
+$border-radius-lg: 0.75rem;
+$border-radius-xl: 1rem;
+$border-radius-pill: 50rem;
+
+// ---- Borders ----
+$border-color: #dfe5ed;
+
+// ---- Shadows - soft and layered, never harsh ----
+$box-shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+$box-shadow: 0 2px 8px -2px rgba(15, 23, 42, 0.08), 0 1px 3px -1px rgba(15, 23, 42, 0.06);
+$box-shadow-lg: 0 8px 24px -4px rgba(15, 23, 42, 0.10), 0 2px 8px -2px rgba(15, 23, 42, 0.06);
+
+// ---- Buttons ----
+$btn-font-weight: 500;
+$btn-padding-y: 0.5rem;
+$btn-padding-x: 1rem;
+$btn-padding-y-sm: 0.3125rem;
+$btn-padding-x-sm: 0.75rem;
+$btn-border-radius: 0.5rem;
+$btn-focus-box-shadow: 0 0 0 3px rgba(8, 127, 232, 0.2);
+
+// ---- Forms ----
+$input-padding-y: 0.5rem;
+$input-padding-x: 0.75rem;
+$input-border-color: #cbd5e1;
+$input-focus-border-color: #087fe8;
+$input-focus-box-shadow: 0 0 0 3px rgba(8, 127, 232, 0.2);
+
+// ---- Cards ----
+$card-border-color: #e2e8f0;
+$card-border-radius: 0.5rem;
+$card-spacer-y: 1.25rem;
+$card-spacer-x: 1.25rem;
+
+// ---- Tables ----
+$table-cell-padding-y: 0.75rem;
+$table-cell-padding-x: 1rem;
+$table-border-color: #e2e8f0;
+
+// ---- Spacer scale (4px increments, matches tokens.css) ----
+$spacer: 1rem;
+$spacers: (
+  0: 0,
+  1: 0.25rem,
+  2: 0.5rem,
+  3: 0.75rem,
+  4: 1rem,
+  5: 1.25rem,
+  6: 1.5rem,
+  8: 2rem,
+  10: 2.5rem,
+  12: 3rem,
+  16: 4rem,
+);
+
+@import 'bootstrap/scss/bootstrap';
+
+// ==========================================================
+// Post-Bootstrap polish - small, deliberate upgrades layered on top of
+// the stock component output so buttons/inputs feel premium rather than
+// "default Bootstrap." Kept minimal on purpose.
+// ==========================================================
+
+.btn {
+  transition: transform var(--hz-transition-fast), box-shadow var(--hz-transition-base), background var(--hz-transition-base), filter var(--hz-transition-base);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.btn-primary {
+  background: var(--hz-primary-600);
+  border-color: var(--hz-primary-600);
+  box-shadow: var(--hz-shadow-primary);
+}
+.btn-primary:hover,
+.btn-primary:focus {
+  filter: brightness(1.06);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 30px -8px rgba(8, 113, 208, 0.38);
+}
+.btn-primary:active {
+  transform: translateY(0);
+  filter: brightness(0.97);
+}
+
+.btn-outline-secondary,
+.btn-light {
+  border-color: var(--hz-border);
+}
+.btn-outline-secondary:hover,
+.btn-light:hover {
+  transform: translateY(-1px);
+}
+
+.form-control,
+.form-select {
+  min-height: 42px;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+}
+
+.form-control::placeholder {
+  color: #8a96a8;
+}
+
+.form-control,
+.form-select {
+  transition: border-color var(--hz-transition-fast), box-shadow var(--hz-transition-fast), background var(--hz-transition-fast);
+}
+.form-control:focus,
+.form-select:focus {
+  background: #fff;
+}
+
+.form-control,
+.form-select {
+  color: var(--hz-text-primary);
+  font-size: var(--hz-text-sm);
+  min-height: 40px;
+}
+.form-control::placeholder {
+  color: var(--hz-text-muted);
+  opacity: 0.8;
+}

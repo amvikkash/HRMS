@@ -1,0 +1,165 @@
+/**
+ * Base layer - resets and platform-wide conventions layered on top of the
+ * customized Bootstrap + tokens. Kept intentionally small: most visual
+ * decisions belong in tokens.css or per-component CSS, not here.
+ */
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--hz-bg-canvas);
+  color: var(--hz-text-primary);
+  font-family: var(--hz-font-sans);
+  font-size: var(--hz-text-base);
+  letter-spacing: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--hz-font-display);
+  letter-spacing: 0;
+}
+
+.hz-main-content {
+  min-width: 0;
+  padding: 16px 20px 28px;
+}
+
+.hz-main-content > * {
+  width: 100%;
+  max-width: 1320px;
+  margin-right: auto;
+  margin-left: auto;
+}
+
+::selection {
+  background: var(--hz-primary-100);
+  color: var(--hz-primary-900);
+}
+
+/* Enterprise apps live in dense screens for hours at a time - a visible,
+   consistent focus ring matters more than it does on a marketing site. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: none;
+  box-shadow: var(--hz-shadow-focus);
+  border-radius: var(--hz-radius-sm);
+}
+
+/* Slim, unobtrusive scrollbars - most enterprise SaaS products style these
+   rather than leaving the OS default, since dense layouts show them a lot. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--hz-gray-300);
+  border-radius: var(--hz-radius-full);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--hz-gray-400);
+}
+
+.text-muted-hz {
+  color: var(--hz-text-muted) !important;
+}
+.text-secondary-hz {
+  color: var(--hz-text-secondary) !important;
+}
+
+.hz-surface {
+  background: var(--hz-bg-surface);
+  border: 1px solid var(--hz-border);
+  border-radius: var(--hz-radius-lg);
+  box-shadow: var(--hz-shadow-sm);
+}
+
+.hz-setup-callout {
+  padding: 14px 16px;
+  border: 1px solid var(--hz-primary-100);
+  border-radius: 10px;
+  background: var(--hz-primary-50);
+}
+
+.hz-setup-callout__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background: var(--hz-bg-surface);
+  color: var(--hz-primary-600);
+}
+
+.hz-setup-callout__title,
+.hz-setup-callout__description {
+  margin: 0;
+}
+
+.hz-setup-callout__title {
+  color: var(--hz-text-primary);
+  font-size: var(--hz-text-sm);
+  font-weight: 700;
+}
+
+.hz-setup-callout__description {
+  color: var(--hz-text-secondary);
+  font-size: var(--hz-text-xs);
+  margin-top: 2px;
+}
+
+.hz-setup-callout__link,
+.hz-trust-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--hz-primary-700);
+  font-size: var(--hz-text-sm);
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.hz-setup-callout__link:hover,
+.hz-trust-link:hover {
+  color: var(--hz-primary-800);
+}
+
+@keyframes hz-shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}

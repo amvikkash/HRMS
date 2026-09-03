@@ -1,0 +1,161 @@
+/**
+ * Vettri HRMS Design Tokens
+ * ----------------------
+ * Single source of truth for the visual language. Every component should
+ * reference these variables rather than hardcoding colors/spacing/radii -
+ * that's what keeps 25+ modules feeling like one coherent product instead
+ * of a pile of independently-styled screens.
+ *
+ * Dark mode: the same token names are redefined under [data-theme="dark"]
+ * so components never need dark-mode-specific CSS of their own.
+ */
+
+:root {
+  /* ---- Brand palette ---- */
+  --hz-primary-50: #eaf2ff;
+  --hz-primary-100: #d9e8ff;
+  --hz-primary-200: #b8d2ff;
+  --hz-primary-300: #86b2ff;
+  --hz-primary-400: #4b93ff;
+  --hz-primary-500: #1769ff;
+  --hz-primary-600: #1769ff;
+  --hz-primary-700: #0f5dcc;
+  --hz-primary-800: #0b1f3a;
+  --hz-primary-900: #07182d;
+
+  --hz-accent-500: #c98216;
+  --hz-accent-600: #a9680d;
+
+  /* ---- Semantic ---- */
+  --hz-success-50: #f0fdf4;
+  --hz-success-500: #12b76a;
+  --hz-success-600: #0e9656;
+
+  --hz-warning-50: #fffbeb;
+  --hz-warning-500: #f59e0b;
+  --hz-warning-600: #dc6803;
+
+  --hz-danger-50: #fef2f2;
+  --hz-danger-500: #ef4444;
+  --hz-danger-600: #d92d20;
+
+  --hz-info-50: #f0f9ff;
+  --hz-info-500: #0284c7;
+  --hz-info-600: #0369a1;
+
+  /* ---- Neutrals (slate) ---- */
+  --hz-gray-50: #f7f9fc;
+  --hz-gray-100: #f1f5f9;
+  --hz-gray-200: #e2e8f0;
+  --hz-gray-300: #cbd5e1;
+  --hz-gray-400: #94a3b8;
+  --hz-gray-500: #64748b;
+  --hz-gray-600: #475569;
+  --hz-gray-700: #334155;
+  --hz-gray-800: #1e293b;
+  --hz-gray-900: #0f172a;
+
+  /* ---- Surface / text roles ---- */
+  --hz-bg-canvas: #f5f7fb;
+  --hz-bg-surface: #ffffff;
+  --hz-bg-surface-hover: var(--hz-gray-50);
+  --hz-bg-sidebar: #0b1f3a;
+  --hz-border: #e2e8f0;
+  --hz-border-strong: var(--hz-gray-300);
+  --hz-text-primary: #10233f;
+  --hz-text-secondary: #64748b;
+  /* --hz-gray-400 (#94a3b8) only clears 2.56:1 against white - a real
+     WCAG AA failure (needs 4.5:1 for normal text) that would otherwise
+     apply everywhere this token is used (timestamps, subtitles, empty-
+     state text - none of it large/bold enough to qualify for the 3:1
+     AA-large exception). There's no gray between this and gray-500 that
+     both passes AA and stays meaningfully distinct from --hz-text-
+     secondary (gray-500 itself only just clears AA at 4.76:1) - so this
+     intentionally lands close to secondary rather than picking an
+     arbitrary near-duplicate that still fails. */
+  --hz-text-muted: #6d7686;
+  --hz-text-on-primary: #ffffff;
+
+  /* ---- Typography ---- */
+  --hz-font-sans: 'Manrope Variable', 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
+  --hz-font-display: 'Manrope Variable', 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
+  --hz-text-xs: 0.75rem;
+  --hz-text-sm: 0.8125rem;
+  --hz-text-base: 0.9375rem;
+  --hz-text-lg: 1.0625rem;
+  --hz-text-xl: 1.25rem;
+  --hz-text-2xl: 1.5rem;
+  --hz-text-3xl: 1.875rem;
+  --hz-text-4xl: 2.25rem;
+  --hz-font-weight-normal: 400;
+  --hz-font-weight-medium: 500;
+  --hz-font-weight-semibold: 600;
+  --hz-font-weight-bold: 700;
+
+  /* ---- Spacing (4px scale) ---- */
+  --hz-space-1: 0.25rem;
+  --hz-space-2: 0.5rem;
+  --hz-space-3: 0.75rem;
+  --hz-space-4: 1rem;
+  --hz-space-5: 1.25rem;
+  --hz-space-6: 1.5rem;
+  --hz-space-8: 2rem;
+  --hz-space-10: 2.5rem;
+  --hz-space-12: 3rem;
+  --hz-space-16: 4rem;
+
+  /* ---- Radii ---- */
+  --hz-radius-sm: 0.375rem;
+  --hz-radius-md: 0.625rem;
+  --hz-radius-lg: 0.75rem;
+  --hz-radius-xl: 0.875rem;
+  --hz-radius-full: 9999px;
+
+  /* ---- Shadows (soft, layered - not harsh drop shadows) ---- */
+  --hz-shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
+  --hz-shadow-md: 0 4px 14px -6px rgba(15, 23, 42, 0.12), 0 1px 3px -1px rgba(15, 23, 42, 0.05);
+  --hz-shadow-lg: 0 14px 30px -10px rgba(15, 23, 42, 0.14), 0 3px 8px -4px rgba(15, 23, 42, 0.08);
+  --hz-shadow-xl: 0 20px 48px -10px rgba(15, 23, 42, 0.16);
+  --hz-shadow-focus: 0 0 0 3px rgba(8, 127, 232, 0.2);
+  --hz-shadow-primary: 0 8px 20px -10px rgba(11, 59, 145, 0.34);
+
+  /* ---- Brand gradients ---- */
+  --hz-gradient-primary: #1677ff;
+  --hz-gradient-accent: #c98216;
+  --hz-gradient-surface: #eaf2ff;
+
+  /* ---- Layout ---- */
+  --hz-sidebar-width: 256px;
+  --hz-sidebar-width-collapsed: 72px;
+  --hz-rail-width: 72px;
+  --hz-topbar-height: 68px;
+
+  /* ---- Motion ---- */
+  --hz-transition-fast: 120ms ease;
+  --hz-transition-base: 200ms ease;
+  --hz-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+[data-theme='dark'] {
+  --hz-bg-canvas: #0b1120;
+  --hz-bg-surface: #111827;
+  --hz-bg-surface-hover: #1a2333;
+  --hz-bg-sidebar: #0f1729;
+  --hz-border: #1f2937;
+  --hz-border-strong: #2c3a4f;
+  --hz-text-primary: #f1f5f9;
+  --hz-text-secondary: #94a3b8;
+  /* Same AA fix as the light-theme token above, recalculated against
+     this theme's dark background (#111827) rather than reused as-is -
+     this block is currently dormant (no data-theme toggle exists
+     anywhere in the app yet), but there's no reason to leave a known-
+     broken contrast value in scaffolding for whoever wires it up later. */
+  --hz-text-muted: #7f8ea3;
+
+  --hz-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+  --hz-shadow-md: 0 4px 12px -3px rgba(0, 0, 0, 0.45), 0 2px 4px -2px rgba(0, 0, 0, 0.3);
+  --hz-shadow-lg: 0 12px 28px -6px rgba(0, 0, 0, 0.5);
+  --hz-shadow-xl: 0 20px 48px -10px rgba(0, 0, 0, 0.6);
+  --hz-shadow-primary: 0 10px 26px -8px rgba(99, 102, 241, 0.55);
+  --hz-gradient-surface: linear-gradient(180deg, rgba(99, 102, 241, 0.08) 0%, rgba(99, 102, 241, 0) 100%);
+}
