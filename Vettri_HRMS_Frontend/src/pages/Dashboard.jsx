@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Users, UserCheck, CalendarOff, Clock3, Inbox, FileText, ArrowRight, ClipboardCheck, PencilLine, Sparkles, Plus, BarChart3, BriefcaseBusiness, Settings2, WalletCards, TrendingUp, LifeBuoy } from 'lucide-react';
+import { Users, UserCheck, CalendarOff, Clock3, Inbox, FileText, ArrowRight, ClipboardCheck, PencilLine, Sparkles, Plus, BarChart3, BriefcaseBusiness, Settings2, WalletCards, TrendingUp, LifeBuoy, PackageOpen } from 'lucide-react';
 import { dashboardApi } from '../api/endpoints/dashboard';
 import { leaveRequestsApi } from '../api/endpoints/leave';
 import { documentsApi, DOCUMENT_TYPE_LABEL } from '../api/endpoints/documents';
@@ -14,7 +14,7 @@ import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../components/ui/Toast';
 
 export default function Dashboard() {
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermission, hasRole } = useAuth();
   const toast = useToast();
   const queryClient = useQueryClient();
   const firstName = user?.fullName?.split(' ')[0];
@@ -110,6 +110,10 @@ export default function Dashboard() {
   const now = new Date();
   const today = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening';
+
+  if (hasRole('EMPLOYEE')) {
+    return <EmployeeDashboard firstName={firstName} greeting={greeting} today={today} />;
+  }
 
   const attentionItems = [
     { label: 'Leave requests', count: pendingCount, detail: pendingCount ? 'Waiting for review' : 'All requests are up to date', icon: CalendarOff, to: '/leave' },
@@ -209,6 +213,47 @@ export default function Dashboard() {
       <section className="hz-dashboard__support-strip" aria-labelledby="support-strip-title">
         <div><span className="hz-dashboard__section-kicker">Need a hand?</span><h2 id="support-strip-title">Support information</h2><p>Reach the right team for your Vettri HRMS questions.</p></div>
         <Link to="/support" className="hz-dashboard__text-link">View all support info <ArrowRight size={15} /></Link>
+        <LifeBuoy size={28} aria-hidden="true" />
+      </section>
+    </div>
+  );
+}
+
+function EmployeeDashboard({ firstName, greeting, today }) {
+  const services = [
+    { title: 'My Profile', description: 'Keep your personal and employment details close at hand.', icon: UserCheck, to: '/my-profile' },
+    { title: 'Attendance', description: 'Review your recorded punches and attendance history.', icon: Clock3, to: '/my-profile?tab=attendance' },
+    { title: 'Leave', description: 'View balances and follow your leave requests.', icon: CalendarOff, to: '/my-profile?tab=leave' },
+    { title: 'My Salary / Payroll', description: 'Access your salary details and payslip information.', icon: WalletCards, to: '/my-payslip' },
+    { title: 'My Documents', description: 'Review the documents held on your employee record.', icon: FileText, to: '/my-profile?tab=documents' },
+    { title: 'My Assets', description: 'See assets currently assigned to you.', icon: PackageOpen, to: '/my-profile?tab=assets' },
+  ];
+
+  return (
+    <div className="hz-dashboard">
+      <header className="hz-dashboard__welcome">
+        <div>
+          <p className="hz-dashboard__eyebrow">{today}</p>
+          <h1>{greeting}, {firstName || 'there'}</h1>
+          <p>Your employee workspace, shaped around the things you need most.</p>
+        </div>
+        <div className="hz-dashboard__welcome-mark" aria-hidden="true"><UserCheck size={21} /></div>
+      </header>
+      <section className="hz-dashboard__explore" aria-labelledby="employee-services-title">
+        <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Employee services</span><h2 id="employee-services-title">Your workspace</h2></div></div>
+        <div className="hz-dashboard__module-grid">
+          {services.map(({ title, description, icon: Icon, to }) => (
+            <Link to={to} className="hz-dashboard__module-card" key={title}>
+              <span className="hz-dashboard__module-icon hz-dashboard__module-icon--blue"><Icon size={19} /></span>
+              <span className="hz-dashboard__module-copy"><strong>{title}</strong><small>{description}</small></span>
+              <ArrowRight size={16} />
+            </Link>
+          ))}
+        </div>
+      </section>
+      <section className="hz-dashboard__support-strip" aria-labelledby="employee-support-title">
+        <div><span className="hz-dashboard__section-kicker">Need a hand?</span><h2 id="employee-support-title">Support information</h2><p>Reach the right team for your Vettri HRMS questions.</p></div>
+        <Link to="/support" className="hz-dashboard__text-link">View support info <ArrowRight size={15} /></Link>
         <LifeBuoy size={28} aria-hidden="true" />
       </section>
     </div>

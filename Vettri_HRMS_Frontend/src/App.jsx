@@ -43,6 +43,7 @@ import NotFound from './pages/NotFound';
 import Onboarding from './pages/Onboarding';
 import SupportInfo from './pages/SupportInfo';
 import Welcome from './pages/Welcome';
+import Notifications from './pages/Notifications';
 const Requirements = lazy(() => import('./pages/Requirements'));
 const MonitoringReports = lazy(() => import('./pages/monitoring/MonitoringReports'));
 const SettingsPlatform = lazy(() => import('./pages/SettingsPlatform'));
@@ -90,6 +91,8 @@ export default function App() {
           <Route path="salary/payroll-processing" element={<PayrollProcessing />} />
           <Route path="salary/reports" element={<SalaryReports />} />
           <Route path="my-payslip" element={<SalaryDetails />} />
+          <Route path="my-profile" element={<EmployeeProfile />} />
+          <Route path="notifications" element={<Notifications />} />
           <Route path="reports" element={<Reports />} />
           <Route path="/requirements" element={<Requirements />} />
           <Route path="executive" element={<ExecutiveOverview />} />

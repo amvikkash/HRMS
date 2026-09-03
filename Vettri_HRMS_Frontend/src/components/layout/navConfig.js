@@ -1,5 +1,6 @@
 import {
   LayoutDashboard,
+  UserRound,
   Users,
   Clock,
   CalendarDays,
@@ -21,6 +22,8 @@ import {
   MonitorSmartphone,
   ClipboardList,
   LifeBuoy,
+  Bell,
+  PackageOpen,
 } from 'lucide-react';
 
 /**
@@ -41,6 +44,25 @@ import {
  * Items are shown only if user has permission to view them.
  */
 export const NAV_SECTIONS = [
+  {
+    id: 'employee-workspace',
+    label: 'My Work',
+    description: 'Your profile, time, pay, and employee services',
+    role: 'EMPLOYEE',
+    collapsible: true,
+    badge: null,
+    items: [
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Home', end: true },
+      { to: '/my-profile', icon: UserRound, label: 'My Profile' },
+      { to: '/my-profile?tab=job', icon: Briefcase, label: 'My Job' },
+      { to: '/my-profile?tab=attendance', icon: Clock, label: 'Attendance' },
+      { to: '/my-profile?tab=leave', icon: CalendarDays, label: 'Leave' },
+      { to: '/my-payslip', icon: Wallet, label: 'My Salary / Payroll' },
+      { to: '/my-profile?tab=documents', icon: FileText, label: 'My Documents' },
+      { to: '/my-profile?tab=assets', icon: PackageOpen, label: 'My Assets' },
+      { to: '/notifications', icon: Bell, label: 'Notifications' },
+    ],
+  },
   {
     id: 'root',
     label: 'Dashboard',
@@ -165,5 +187,5 @@ export function visibleNavSections(hasPermission, hasRole = () => false) {
       return (!required || hasPermission(required)) && (!item.role || hasRole(item.role));
     });
     return { ...section, items };
-  }).filter((section) => section.items.length > 0);
+  }).filter((section) => section.items.length > 0 && (!section.role || hasRole(section.role)));
 }

@@ -25,6 +25,8 @@ const ROUTES = [
 
   { pattern: '/leave', crumbs: [{ label: 'Leave' }] },
   { pattern: '/my-payslip', crumbs: [{ label: 'My Payslip', dynamic: true }] },
+  { pattern: '/my-profile', crumbs: [{ label: 'My Profile' }] },
+  { pattern: '/notifications', crumbs: [{ label: 'Notifications' }] },
 
   { pattern: '/recruitment', crumbs: [{ label: 'Recruitment' }] },
   {

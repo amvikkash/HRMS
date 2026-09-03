@@ -19,6 +19,7 @@ import { statusMeta, STATUS_META, SELECTABLE_STATUSES, EMPLOYMENT_TYPE_LABEL } f
 import { leaveStatusMeta } from '../leave/leaveStatusMeta';
 import { useBreadcrumbLabel } from '../../components/layout/BreadcrumbContext';
 import Tabs from '../../components/ui/Tabs';
+import { useAuth } from '../../hooks/useAuth';
 
 const TABS = [
   { key: 'overview', label: 'Profile', icon: ClipboardList },
@@ -30,19 +31,25 @@ const TABS = [
   { key: 'assets', label: 'Assets', icon: PackageOpen },
 ];
 const VALID_TAB_KEYS = TABS.map((tab) => tab.key);
+const EMPLOYEE_TAB_KEYS = ['overview', 'job', 'attendance', 'leave', 'documents', 'assets'];
 
 export default function EmployeeProfile() {
   const { id } = useParams();
+  const { user, hasRole } = useAuth();
+  const employeeId = id || user?.employeeId;
+  const isEmployee = hasRole('EMPLOYEE');
+  const availableTabs = isEmployee ? TABS.filter((item) => EMPLOYEE_TAB_KEYS.includes(item.key)) : TABS;
+  const availableTabKeys = isEmployee ? EMPLOYEE_TAB_KEYS : VALID_TAB_KEYS;
   const [searchParams, setSearchParams] = useSearchParams();
-  const initialTab = VALID_TAB_KEYS.includes(searchParams.get('tab')) ? searchParams.get('tab') : 'overview';
+  const initialTab = availableTabKeys.includes(searchParams.get('tab')) ? searchParams.get('tab') : 'overview';
   const [tab, setTab] = useState(initialTab);
   const queryClient = useQueryClient();
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
 
   useEffect(() => {
     const requestedTab = searchParams.get('tab');
-    setTab(VALID_TAB_KEYS.includes(requestedTab) ? requestedTab : 'overview');
-  }, [searchParams]);
+    setTab(availableTabKeys.includes(requestedTab) ? requestedTab : 'overview');
+  }, [searchParams, availableTabKeys]);
 
   function changeTab(key) {
     setTab(key);
@@ -50,8 +57,9 @@ export default function EmployeeProfile() {
   }
 
   const { data: employee, isLoading, isError, refetch } = useQuery({
-    queryKey: ['employee', id],
-    queryFn: () => employeesApi.getById(id),
+    queryKey: ['employee', employeeId],
+    queryFn: () => employeesApi.getById(employeeId),
+    enabled: !!employeeId,
   });
 
   useBreadcrumbLabel(employee?.fullName);
@@ -59,7 +67,7 @@ export default function EmployeeProfile() {
   const changeStatus = useMutation({
     mutationFn: (status) => employeesApi.updateStatus(id, status),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['employee', id] });
+      queryClient.invalidateQueries({ queryKey: ['employee', employeeId] });
       queryClient.invalidateQueries({ queryKey: ['employees'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
       setStatusMenuOpen(false);
@@ -106,6 +114,7 @@ export default function EmployeeProfile() {
             </div>
           </div>
 
+          {!isEmployee && (
           <div className="position-relative">
             <Button variant="secondary" size="sm" onClick={() => setStatusMenuOpen((o) => !o)}>
               Change Status <ChevronDown size={14} />
@@ -134,6 +143,7 @@ export default function EmployeeProfile() {
               </>
             )}
           </div>
+          )}
         </div>
         <div className="hz-profile-summary">
           <ProfileSummary label="Joined" value={employee.dateOfJoining ? new Date(employee.dateOfJoining).toLocaleDateString() : 'Not set'} />
@@ -148,7 +158,7 @@ export default function EmployeeProfile() {
         </div>
       </Card>
 
-      <Tabs items={TABS} value={tab} onChange={changeTab} />
+      <Tabs items={availableTabs} value={tab} onChange={changeTab} />
 
       {tab === 'overview' && <OverviewTab employee={employee} />}
       {tab === 'job' && <JobTab employee={employee} />}
@@ -451,9 +461,7 @@ function DocumentsTab({ employee }) {
       title="Documents"
       subtitle="ID proof, visas, certifications, and contracts on file"
       actions={
-        <Button size="sm" variant="secondary" icon={Plus} onClick={() => setShowAdd(true)}>
-          Add Document
-        </Button>
+        !isEmployee && <Button size="sm" variant="secondary" icon={Plus} onClick={() => setShowAdd(true)}>Add Document</Button>
       }
       bodyClassName="p-0"
     >
@@ -557,7 +565,7 @@ function DocumentsTab({ employee }) {
         </table>
       )}
 
-      {showAdd && <AddDocumentModal employeeId={employee.id} onClose={() => setShowAdd(false)} />}
+      {showAdd && !isEmployee && <AddDocumentModal employeeId={employee.id} onClose={() => setShowAdd(false)} />}
     </Card>
   );
 }
