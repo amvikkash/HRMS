@@ -108,6 +108,15 @@ public class WorkSessionController {
         return WorkSessionDTO.from(ws);
     }
 
+    @GetMapping("/me/today")
+    @PreAuthorize("hasAuthority('EMPLOYEE_VIEW') or hasRole('EMPLOYEE')")
+    public WorkSessionDTO todayForCurrentEmployee() {
+        Employee me = currentEmployee();
+        return workSessionRepository.findByEmployee_IdAndStatusAndSessionDate(me.getId(), "ACTIVE", LocalDate.now())
+                .map(WorkSessionDTO::from)
+                .orElse(null);
+    }
+
     @GetMapping
     @PreAuthorize("!hasRole('EMPLOYEE') and hasAuthority('ATTENDANCE_VIEW')")
     public List<WorkSessionDTO> list(@RequestParam(required = false) String date,
