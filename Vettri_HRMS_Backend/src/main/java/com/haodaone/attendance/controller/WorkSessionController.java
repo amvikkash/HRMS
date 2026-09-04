@@ -44,7 +44,7 @@ public class WorkSessionController {
     }
 
     @PostMapping("/start")
-    @PreAuthorize("hasAuthority('EMPLOYEE_VIEW')")
+    @PreAuthorize("hasAuthority('EMPLOYEE_VIEW') or hasRole('EMPLOYEE')")
     @Transactional
     public WorkSessionDTO start(@RequestBody StartWorkRequest request) {
         Employee me = currentEmployee();
@@ -93,7 +93,7 @@ public class WorkSessionController {
     }
 
     @PostMapping("/stop")
-    @PreAuthorize("hasAuthority('EMPLOYEE_VIEW')")
+    @PreAuthorize("hasAuthority('EMPLOYEE_VIEW') or hasRole('EMPLOYEE')")
     @Transactional
     public WorkSessionDTO stop() {
         Employee me = currentEmployee();
