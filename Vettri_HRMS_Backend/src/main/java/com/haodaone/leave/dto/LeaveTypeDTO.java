@@ -10,6 +10,7 @@ public class LeaveTypeDTO {
     private String code;
     private double defaultDaysPerYear;
     private boolean carryForward;
+    private boolean autoApprove;
     private boolean active;
 
     public static LeaveTypeDTO from(LeaveType t) {
@@ -19,6 +20,7 @@ public class LeaveTypeDTO {
         dto.code = t.getCode();
         dto.defaultDaysPerYear = t.getDefaultDaysPerYear();
         dto.carryForward = t.isCarryForward();
+        dto.autoApprove = t.isAutoApprove();
         dto.active = t.isActive();
         return dto;
     }
@@ -47,6 +49,10 @@ public class LeaveTypeDTO {
         return active;
     }
 
+    public boolean isAutoApprove() {
+        return autoApprove;
+    }
+
     public static class CreateRequest {
         @NotBlank(message = "Name is required")
         private String name;
@@ -58,6 +64,7 @@ public class LeaveTypeDTO {
         private double defaultDaysPerYear;
 
         private boolean carryForward;
+        private boolean autoApprove;
 
         public String getName() {
             return name;
@@ -89,6 +96,14 @@ public class LeaveTypeDTO {
 
         public void setCarryForward(boolean carryForward) {
             this.carryForward = carryForward;
+        }
+
+        public boolean isAutoApprove() {
+            return autoApprove;
+        }
+
+        public void setAutoApprove(boolean autoApprove) {
+            this.autoApprove = autoApprove;
         }
     }
 }

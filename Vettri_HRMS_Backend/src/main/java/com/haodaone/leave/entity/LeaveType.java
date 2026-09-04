@@ -25,6 +25,9 @@ public class LeaveType extends BaseEntity {
     @Column(name = "carry_forward", nullable = false)
     private boolean carryForward = false;
 
+    @Column(name = "auto_approve", nullable = false)
+    private boolean autoApprove = false;
+
     @Column(nullable = false)
     private boolean active = true;
 
@@ -58,6 +61,14 @@ public class LeaveType extends BaseEntity {
 
     public void setCarryForward(boolean carryForward) {
         this.carryForward = carryForward;
+    }
+
+    public boolean isAutoApprove() {
+        return autoApprove;
+    }
+
+    public void setAutoApprove(boolean autoApprove) {
+        this.autoApprove = autoApprove;
     }
 
     public boolean isActive() {

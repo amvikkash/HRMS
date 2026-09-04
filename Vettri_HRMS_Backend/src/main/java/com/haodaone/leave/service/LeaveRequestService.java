@@ -150,12 +150,21 @@ public class LeaveRequestService {
         leaveRequest.setEndDate(request.getEndDate());
         leaveRequest.setDays(requestedDays);
         leaveRequest.setReason(request.getReason());
-        leaveRequest.setStatus("PENDING");
+        boolean autoApproved = leaveType.isAutoApprove();
+        leaveRequest.setStatus(autoApproved ? "APPROVED" : "PENDING");
+        if (autoApproved) {
+            leaveRequest.setDecidedAt(LocalDateTime.now());
+            leaveRequest.setDecisionNote("Automatically approved by leave policy");
+        }
 
         LeaveRequest saved = leaveRequestRepository.save(leaveRequest);
         auditLogService.log("LeaveRequest", saved.getId(), "CREATE",
                 String.format("%s applied for %.1f day(s) of %s (%s to %s)", employee.getFullName(), requestedDays,
                         leaveType.getName(), request.getStartDate(), request.getEndDate()));
+        if (autoApproved) {
+            auditLogService.log("LeaveRequest", saved.getId(), "AUTO_APPROVE",
+                "Automatically approved by leave type policy '" + leaveType.getName() + "'");
+        }
         return LeaveRequestDTO.from(saved);
     }
 

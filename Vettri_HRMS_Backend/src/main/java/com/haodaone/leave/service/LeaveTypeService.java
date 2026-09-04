@@ -41,10 +41,29 @@ public class LeaveTypeService {
         type.setCode(request.getCode());
         type.setDefaultDaysPerYear(request.getDefaultDaysPerYear());
         type.setCarryForward(request.isCarryForward());
+        type.setAutoApprove(request.isAutoApprove());
         type.setCompany(companyRepository.findById(companyId).orElseThrow(() -> new ResourceNotFoundException("Company not found")));
 
         LeaveType saved = leaveTypeRepository.save(type);
         auditLogService.log("LeaveType", saved.getId(), "CREATE", "Created leave type '" + saved.getName() + "'");
+        return LeaveTypeDTO.from(saved);
+    }
+
+    @Transactional
+    public LeaveTypeDTO update(Long id, LeaveTypeDTO.CreateRequest request) {
+        Long companyId = requiredTenant();
+        LeaveType type = leaveTypeRepository.findByIdAndCompany_IdAndDeletedFalse(id, companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Leave type not found"));
+        if (!type.getCode().equals(request.getCode()) && leaveTypeRepository.existsByCompany_IdAndCode(companyId, request.getCode())) {
+            throw new BadRequestException("Leave type code '" + request.getCode() + "' is already in use");
+        }
+        type.setName(request.getName());
+        type.setCode(request.getCode());
+        type.setDefaultDaysPerYear(request.getDefaultDaysPerYear());
+        type.setCarryForward(request.isCarryForward());
+        type.setAutoApprove(request.isAutoApprove());
+        LeaveType saved = leaveTypeRepository.save(type);
+        auditLogService.log("LeaveType", saved.getId(), "UPDATE", "Updated leave type '" + saved.getName() + "'");
         return LeaveTypeDTO.from(saved);
     }
 
