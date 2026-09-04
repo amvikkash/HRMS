@@ -4,6 +4,7 @@ import { candidatesApi } from '../../api/endpoints/recruitment';
 import Button from '../../components/ui/Button';
 import Dialog from '../../components/ui/Dialog';
 import FormField from '../../components/ui/FormField';
+import ErrorBanner from '../../components/ui/ErrorBanner';
 
 // Mirrors CandidateService.ALLOWED_ADVANCES on the backend - kept in sync
 // manually since this is a small, stable state graph. The backend is the
@@ -52,9 +53,7 @@ export default function AdvanceCandidateModal({ candidate, onClose }) {
     <Dialog open onClose={onClose} title="Update Pipeline Stage" description={`${candidate.fullName} · currently ${candidate.stage}`} size="md">
       <form onSubmit={handleSubmit}>
         {error && (
-          <div className="mb-3 px-3 py-2" style={{ background: 'var(--hz-danger-50)', color: 'var(--hz-danger-600)', borderRadius: 8, fontSize: 13 }}>
-            {error}
-          </div>
+          <ErrorBanner>{error}</ErrorBanner>
         )}
 
         <div className="mb-3 d-flex flex-column gap-2">

@@ -14,6 +14,8 @@ import { SkeletonText } from '../../components/ui/Skeleton';
 import { useToast } from '../../components/ui/Toast';
 import CandidateDetailModal from './CandidateDetailModal';
 import { useBreadcrumbLabel } from '../../components/layout/BreadcrumbContext';
+import PageHeader from '../../components/ui/PageHeader';
+import StatCard from '../../components/ui/StatCard';
 
 // Main flow left to right, then the two exception/terminal columns
 // (On Hold, Rejected) pinned at the end - a candidate can land in either
@@ -148,18 +150,14 @@ export default function CandidatePipeline() {
         <ArrowLeft size={15} /> Back to Job Openings
       </Link>
 
-      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
-        <div>
-          <h1 style={{ fontSize: 'var(--hz-text-2xl)', fontWeight: 700 }}>{opening?.title || 'Candidate Pipeline'}</h1>
-          <p className="text-secondary-hz" style={{ fontSize: 'var(--hz-text-sm)' }}>
-            {opening?.departmentName || 'Any department'} {opening?.designationTitle ? `· ${opening.designationTitle}` : ''}
-            {candidates ? ` · ${candidates.length} candidate${candidates.length === 1 ? '' : 's'}` : ''}
-          </p>
-        </div>
-        <Button icon={UserPlus} onClick={() => setShowAddCandidate(true)}>
+      <PageHeader
+        eyebrow="Talent pipeline"
+        title={opening?.title || 'Candidate Pipeline'}
+        description={`${opening?.departmentName || 'Any department'}${opening?.designationTitle ? ` · ${opening.designationTitle}` : ''}${candidates ? ` · ${candidates.length} candidate${candidates.length === 1 ? '' : 's'}` : ''}`}
+        actions={<Button icon={UserPlus} onClick={() => setShowAddCandidate(true)}>
           Add Candidate
-        </Button>
-      </div>
+        </Button>}
+      />
 
       {isLoading && (
         <Card>
@@ -173,10 +171,10 @@ export default function CandidatePipeline() {
       )}
       {!isLoading && !isError && candidates?.length > 0 && (
         <div className="hz-pipeline-summary" aria-label="Candidate pipeline summary">
-          <PipelineMetric label="Total candidates" value={candidates.length} />
-          <PipelineMetric label="Active stages" value={STAGE_COLUMNS.filter((stage) => columns[stage]?.length > 0 && !['HIRED', 'REJECTED'].includes(stage)).length} />
-          <PipelineMetric label="Offers" value={(columns.OFFERED?.length || 0) + (columns.OFFER_LETTER_SENT?.length || 0)} />
-          <PipelineMetric label="Hired" value={columns.HIRED?.length || 0} />
+          <div className="col-6 col-xl-3"><StatCard label="Total candidates" value={candidates.length} icon={UserPlus} /></div>
+          <div className="col-6 col-xl-3"><StatCard label="Active stages" value={STAGE_COLUMNS.filter((stage) => columns[stage]?.length > 0 && !['HIRED', 'REJECTED'].includes(stage)).length} icon={Briefcase} accent="info" /></div>
+          <div className="col-6 col-xl-3"><StatCard label="Offers" value={(columns.OFFERED?.length || 0) + (columns.OFFER_LETTER_SENT?.length || 0)} icon={Briefcase} accent="warning" /></div>
+          <div className="col-6 col-xl-3"><StatCard label="Hired" value={columns.HIRED?.length || 0} icon={UserPlus} accent="success" /></div>
         </div>
       )}
       {!isLoading && !isError && candidates?.length === 0 && (

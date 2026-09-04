@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Search, UserPlus, FileSpreadsheet, ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { employeesApi } from '../../api/endpoints/employees';
 import Card from '../../components/ui/Card';
-import Badge from '../../components/ui/Badge';
+import StatusBadge from '../../components/ui/StatusBadge';
 import Button from '../../components/ui/Button';
 import Avatar from '../../components/ui/Avatar';
 import Table from '../../components/ui/Table';
@@ -12,6 +12,7 @@ import CreateEmployeeModal from './CreateEmployeeModal';
 import { statusMeta, EMPLOYMENT_TYPE_LABEL } from './statusMeta';
 import PageHeader from '../../components/ui/PageHeader';
 import FilterBar from '../../components/ui/FilterBar';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 
 const COLUMNS = [
   {
@@ -44,11 +45,7 @@ const COLUMNS = [
     label: 'Status',
     render: (emp) => {
       const meta = statusMeta(emp.status);
-      return (
-        <Badge variant={meta.variant} dot>
-          {meta.label}
-        </Badge>
-      );
+      return <StatusBadge status={emp.status} variant={meta.variant} dot>{meta.label}</StatusBadge>;
     },
   },
   {
@@ -69,6 +66,9 @@ export default function EmployeeList() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [showCreate, setShowCreate] = useState(false);
+  const [selectedIds, setSelectedIds] = useState(new Set());
+  const [bulkStatus, setBulkStatus] = useState(null);
+  const queryClient = useQueryClient();
   const pageSize = 25;
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -79,6 +79,14 @@ export default function EmployeeList() {
   const employees = data?.content;
   const totalPages = data?.totalPages ?? 0;
   const totalElements = data?.totalElements ?? 0;
+  const bulkUpdate = useMutation({
+    mutationFn: async () => Promise.all(Array.from(selectedIds).map((id) => employeesApi.updateStatus(id, bulkStatus))),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['employees-paged'] });
+      setSelectedIds(new Set());
+      setBulkStatus(null);
+    },
+  });
 
   function handleSearchChange(value) {
     setSearch(value);
@@ -105,6 +113,7 @@ export default function EmployeeList() {
           <input
             type="search"
             placeholder="Search by name, code, or email…"
+            aria-label="Search employees by name, code, or email"
             className="form-control ps-5"
             value={search}
             onChange={(e) => handleSearchChange(e.target.value)}
@@ -132,11 +141,22 @@ export default function EmployeeList() {
         )}
       </FilterBar>
 
+      {selectedIds.size > 0 && <div className="hz-bulk-toolbar" role="toolbar" aria-label="Bulk employee actions">
+        <strong>{selectedIds.size} selected</strong>
+        <Button size="sm" variant="secondary" onClick={() => setBulkStatus('Active')}>Mark active</Button>
+        <Button size="sm" variant="secondary" onClick={() => setBulkStatus('On Leave')}>Mark on leave</Button>
+        <button type="button" className="btn btn-link btn-sm" onClick={() => setSelectedIds(new Set())}>Clear selection</button>
+      </div>}
+
       <Card bodyClassName="p-0">
         <Table
           columns={COLUMNS}
           rows={employees}
           getRowKey={(emp) => emp.id}
+          selectable
+          selectedKeys={selectedIds}
+          onToggleRow={(emp) => setSelectedIds((current) => { const next = new Set(current); if (next.has(emp.id)) next.delete(emp.id); else next.add(emp.id); return next; })}
+          onToggleAll={(checked) => setSelectedIds(checked ? new Set((employees || []).map((emp) => emp.id)) : new Set())}
           isLoading={isLoading}
           isError={isError}
           onRetry={refetch}
@@ -179,6 +199,7 @@ export default function EmployeeList() {
       </Card>
 
       {showCreate && <CreateEmployeeModal onClose={() => setShowCreate(false)} />}
+      <ConfirmDialog open={!!bulkStatus} onClose={() => setBulkStatus(null)} onConfirm={() => bulkUpdate.mutate()} loading={bulkUpdate.isPending} title={`Mark ${selectedIds.size} employees ${bulkStatus?.toLowerCase()}?`} description="This will update the employment status for every selected employee." confirmLabel="Update status" />
     </div>
   );
 }

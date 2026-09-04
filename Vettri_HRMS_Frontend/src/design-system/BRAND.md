@@ -24,12 +24,12 @@ Brand colors are defined once in `tokens.css` and reused everywhere:
 
 | Role | Token | Hex |
 |---|---|---|
-| Primary blue | `--hz-primary-500` | `#087FE8` |
-| Deep navy | `--hz-primary-700` | `#0B3B91` |
-| Accent orange | `--hz-accent-500` | `#FF8A00` |
+| Primary blue | `--hz-primary-500` | `#2563EB` |
+| Deep navy | `--hz-primary-700` | `#1E40AF` |
+| Accent orange | `--hz-accent-500` | `#F97316` |
 | Golden accent | static mark accent | `#FFB000` |
 | Ink | `--hz-text-primary` | `#172033` |
-| Canvas | `--hz-gray-50` | `#F5F8FC` |
+| Canvas | `--hz-bg-canvas` | `#F4F7FB` |
 
 The signature gradient (`--hz-primary-500` → `--hz-primary-700` →
 `--hz-accent-600`) is used sparingly, for high-impact surfaces only: the hero
@@ -42,7 +42,7 @@ stays on the quiet neutral palette so the gradient keeps its impact.
   Grotesk* - used only for large marketing headlines (hero, section titles).
   Chosen for a technical, structured character that fits a workforce
   platform without tipping into a generic "startup" look.
-- **Body / UI** (`--hz-font-sans`): *Inter* - every paragraph, label, nav
+- **Body / UI** (`--hz-font-sans`): *Manrope* - every paragraph, label, nav
   item, and the entire authenticated product.
 
 Both are loaded via the `@import` at the top of `landing.css`. If the app

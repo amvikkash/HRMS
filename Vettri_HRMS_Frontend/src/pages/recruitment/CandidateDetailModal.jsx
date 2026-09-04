@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Star, Download, Eye, CalendarClock, CheckCircle2, UserPlus, ClipboardCheck, ArrowRightCircle, Award, Send, FileText, Clock3 } from 'lucide-react';
 import { candidatesApi, interviewsApi } from '../../api/endpoints/recruitment';
 import { axiosClient } from '../../api/axiosClient';
-import Badge from '../../components/ui/Badge';
+import StatusBadge from '../../components/ui/StatusBadge';
 import Button from '../../components/ui/Button';
 import ReviewCandidateModal from './ReviewCandidateModal';
 import AdvanceCandidateModal from './AdvanceCandidateModal';
@@ -61,7 +61,7 @@ export default function CandidateDetailModal({ candidateId, onClose }) {
         size="lg"
       >
           <div className="d-flex align-items-center gap-2 mb-4">
-            <Badge variant={STAGE_VARIANT[candidate.stage] || 'neutral'}>{candidate.stage}</Badge>
+            <StatusBadge status={candidate.stage} variant={STAGE_VARIANT[candidate.stage] || 'neutral'}>{candidate.stage}</StatusBadge>
           </div>
 
           <div className="d-flex flex-column gap-4">
@@ -132,12 +132,12 @@ export default function CandidateDetailModal({ candidateId, onClose }) {
                         )}
                         {iv.decision && (
                           <div style={{ fontSize: 12, marginTop: 4 }}>
-                            <Badge variant={iv.decision === 'REJECTED' ? 'danger' : 'success'}>{iv.decision.replaceAll('_', ' ')}</Badge>
+                            <StatusBadge status={iv.decision} variant={iv.decision === 'REJECTED' ? 'danger' : 'success'}>{iv.decision.replaceAll('_', ' ')}</StatusBadge>
                           </div>
                         )}
                       </div>
                       <div className="text-end">
-                        <Badge variant={iv.status === 'COMPLETED' ? 'success' : 'neutral'}>{iv.status}</Badge>
+                        <StatusBadge status={iv.status} variant={iv.status === 'COMPLETED' ? 'success' : 'neutral'}>{iv.status}</StatusBadge>
                         {iv.rating && (
                           <div className="d-flex gap-1 justify-content-end mt-1">
                             {[1, 2, 3, 4, 5].map((n) => (

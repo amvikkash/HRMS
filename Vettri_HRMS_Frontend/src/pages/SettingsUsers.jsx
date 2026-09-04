@@ -5,6 +5,7 @@ import { usersApi } from '../api/endpoints/users';
 import { rolesApi } from '../api/endpoints/roles';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
+import StatusBadge from '../components/ui/StatusBadge';
 import Button from '../components/ui/Button';
 import Avatar from '../components/ui/Avatar';
 import Dialog from '../components/ui/Dialog';
@@ -14,6 +15,7 @@ import ErrorState from '../components/ui/ErrorState';
 import EmptyState from '../components/ui/EmptyState';
 import { useToast } from '../components/ui/Toast';
 import PageHeader from '../components/ui/PageHeader';
+import ErrorBanner from '../components/ui/ErrorBanner';
 
 export default function SettingsUsers() {
   const [showCreate, setShowCreate] = useState(false);
@@ -91,9 +93,9 @@ export default function SettingsUsers() {
                     </div>
                   </td>
                   <td>
-                    <Badge variant={u.active ? 'success' : 'neutral'} dot>
+                    <StatusBadge status={u.active ? 'ACTIVE' : 'INACTIVE'} variant={u.active ? 'success' : 'neutral'} dot>
                       {u.active ? 'Active' : 'Inactive'}
-                    </Badge>
+                    </StatusBadge>
                   </td>
                   <td style={{ fontSize: 'var(--hz-text-sm)', color: 'var(--hz-text-secondary)' }}>
                     {u.lastLoginAt ? new Date(u.lastLoginAt).toLocaleString() : 'Never'}
@@ -247,9 +249,7 @@ function CreateUserModal({ onClose }) {
     <Dialog open onClose={onClose} title="New User" size="sm">
       <form onSubmit={handleSubmit}>
         {error && (
-          <div className="mb-3 px-3 py-2" style={{ background: 'var(--hz-danger-50)', color: 'var(--hz-danger-600)', borderRadius: 8, fontSize: 13 }}>
-            {error}
-          </div>
+          <ErrorBanner>{error}</ErrorBanner>
         )}
         <FormField label="Full Name" value={form.fullName} onChange={(v) => setForm({ ...form, fullName: v })} required />
         <FormField label="Username" value={form.username} onChange={(v) => setForm({ ...form, username: v })} required />

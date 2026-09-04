@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { axiosClient } from '../api/axiosClient';
 import Card from '../components/ui/Card';
-import Badge from '../components/ui/Badge';
+import StatusBadge from '../components/ui/StatusBadge';
 import FormField from '../components/ui/FormField';
 import { SkeletonText } from '../components/ui/Skeleton';
 import ErrorState from '../components/ui/ErrorState';
@@ -34,7 +34,7 @@ const ENTITY_TYPES = [
 const COLUMNS = [
   { key: 'when', label: 'When', className: 'ps-4', headerClassName: 'ps-4', render: (log) => new Date(log.performedAt).toLocaleString(), style: { color: 'var(--hz-text-secondary)' } },
   { key: 'entity', label: 'Entity', render: (log) => `${log.entityName} #${log.entityId}` },
-  { key: 'action', label: 'Action', render: (log) => <Badge variant={ACTION_VARIANT[log.action] || 'neutral'}>{log.action}</Badge> },
+  { key: 'action', label: 'Action', render: (log) => <StatusBadge status={log.action} variant={ACTION_VARIANT[log.action] || 'neutral'} dot={false}>{log.action}</StatusBadge> },
   { key: 'performedBy', label: 'Performed By', render: (log) => log.performedBy },
   { key: 'details', label: 'Details', className: 'pe-4', headerClassName: 'pe-4', render: (log) => log.details, style: { color: 'var(--hz-text-secondary)' } },
 ];

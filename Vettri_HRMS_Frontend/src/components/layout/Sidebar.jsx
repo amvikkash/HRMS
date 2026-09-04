@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
-import { LayoutDashboard, Settings2, Star, X } from 'lucide-react';
+import { LayoutDashboard, Settings2, X } from 'lucide-react';
 import Logo from '../brand/Logo';
-import { NAV_SECTIONS, NAV_INDEX, findNavItemByPath, visibleNavSections } from './navConfig';
+import { NAV_SECTIONS, findNavItemByPath, visibleNavSections } from './navConfig';
 import { useNavMemory } from './NavMemoryContext';
 import { useAuth } from '../../hooks/useAuth';
 
@@ -10,28 +10,15 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
   const location = useLocation();
   const sidebarRef = useRef(null);
   const { hasPermission, hasRole } = useAuth();
-  const { favoritePaths, toggleFavorite, isFavorite, recordVisit } = useNavMemory();
+  const { recordVisit } = useNavMemory();
   const sections = useMemo(() => visibleNavSections(hasPermission, hasRole), [hasPermission, hasRole]);
-  // Favorites can include an item from a section the user no longer has
-  // permission for (e.g. a role change) - filter those out defensively
-  // rather than rendering a link that 403s.
-  const visiblePaths = new Set(sections.flatMap((s) => s.items.map((i) => i.to)));
-  const favorites = favoritePaths
-    .map((p) => NAV_INDEX.find((item) => item.to === p))
-    .filter((item) => item && visiblePaths.has(item.to));
 
-  const activeSectionId = NAV_SECTIONS.find((section) =>
-    section.items.some((item) => location.pathname === item.to || location.pathname.startsWith(`${item.to}/`))
-  )?.id;
-  const productSections = sections.filter((section) => section.id !== 'administration');
+  const activeSectionId = sections.find((section) => section.items.some((item) => isNavItemActive(item, location)))?.id;
+  const [selectedSectionId, setSelectedSectionId] = useState(activeSectionId || sections[0]?.id);
+  const selectedSection = sections.find((section) => section.id === selectedSectionId) || sections[0];
   const administration = sections.find((section) => section.id === 'administration');
-  const railSections = productSections;
-  const [selectedSectionId, setSelectedSectionId] = useState(activeSectionId || 'root');
-  const selectedSection = railSections.find((section) => section.id === selectedSectionId)
-    || administration
-    || railSections[0];
   const [flyoutOpen, setFlyoutOpen] = useState(false);
-  const [nestedSectionId, setNestedSectionId] = useState(null);
+  const [flyoutTop, setFlyoutTop] = useState(12);
 
   // Restore the user's group preferences, then always open the active group
   // so navigation never hides the page they are currently viewing.
@@ -65,15 +52,13 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, [flyoutOpen]);
 
-  const toggleProduct = (id) => {
+  function toggleProduct(id, event) {
     setSelectedSectionId(id);
-    setNestedSectionId(null);
+    if (event?.currentTarget && window.matchMedia('(min-width: 992px)').matches) {
+      setFlyoutTop(Math.max(12, event.currentTarget.getBoundingClientRect().top));
+    }
     setFlyoutOpen((isOpen) => selectedSectionId === id ? !isOpen : true);
-  };
-
-  const toggleNested = (sectionId) => {
-    setNestedSectionId((current) => current === sectionId ? null : sectionId);
-  };
+  }
 
   return (
     <>
@@ -87,19 +72,10 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
       <aside
         ref={sidebarRef}
         className={`d-flex flex-column hz-sidebar hz-icon-rail ${mobileOpen ? 'hz-sidebar--mobile-open' : ''}`}
-        onMouseLeave={() => {
-          if (window.matchMedia('(min-width: 992px)').matches) setFlyoutOpen(false);
-        }}
-        style={{
-          width: 'var(--hz-rail-width, 76px)',
-          background: 'var(--hz-bg-sidebar)',
-          borderRight: '1px solid var(--hz-border)',
-          flexShrink: 0,
-        }}
+        aria-label="Main navigation"
       >
         <div
-          className="d-flex align-items-center justify-content-between gap-2 px-3"
-          style={{ height: 'var(--hz-topbar-height)', borderBottom: '1px solid var(--hz-border)' }}
+          className="hz-sidebar__header d-flex align-items-center justify-content-between gap-2"
         >
           <div className="hz-rail-brand">
             <Logo variant="mark" tone="onDark" size={32} />
@@ -117,7 +93,7 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
         </div>
 
         <nav className="hz-icon-rail__nav flex-grow-1 overflow-auto" aria-label="Product areas">
-          {railSections.map((section) => {
+          {sections.map((section) => {
             const Icon = section.id === 'administration' ? Settings2 : section.items[0]?.icon || LayoutDashboard;
             const isActive = activeSectionId === section.id;
             const isSelected = selectedSectionId === section.id && flyoutOpen;
@@ -126,34 +102,16 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
                 type="button"
                 key={section.id}
                 className={`hz-rail-item ${isActive ? 'hz-rail-item--active' : ''} ${isSelected ? 'hz-rail-item--selected' : ''}`}
-                onClick={() => toggleProduct(section.id)}
+                onClick={(event) => toggleProduct(section.id, event)}
                 aria-label={section.label}
                 aria-expanded={isSelected}
                 title={section.label}
-                onMouseEnter={() => {
-                  if (window.matchMedia('(min-width: 992px)').matches) {
-                    setSelectedSectionId(section.id);
-                    setFlyoutOpen(true);
-                  }
-                }}
               >
                 <Icon size={19} strokeWidth={1.8} />
                 <span>{section.label}</span>
                 {section.badge && (
                   <span
-                    style={{
-                      position: 'absolute',
-                      top: 6,
-                      right: 6,
-                      background: section.badge.type === 'alert' ? 'var(--hz-danger-500)' : 'var(--hz-primary-600)',
-                      color: 'white',
-                      fontSize: 9,
-                      fontWeight: 700,
-                      padding: '2px 4px',
-                      borderRadius: 3,
-                      minWidth: 16,
-                      textAlign: 'center',
-                    }}
+                    className={`hz-rail-badge ${section.badge.type === 'alert' ? 'hz-rail-badge--alert' : ''}`}
                   >
                     {section.badge.value > 99 ? '99+' : section.badge.value}
                   </span>
@@ -163,37 +121,28 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
           })}
         </nav>
 
-        <button
+        {administration && <button
           type="button"
           className={`hz-rail-settings ${activeSectionId === 'administration' ? 'hz-rail-item--active' : ''} ${selectedSectionId === 'administration' && flyoutOpen ? 'hz-rail-item--selected' : ''}`}
-          onClick={() => toggleProduct('administration')}
+          onClick={(event) => toggleProduct('administration', event)}
           aria-label="Settings"
           aria-expanded={selectedSectionId === 'administration' && flyoutOpen}
           title="Settings"
         >
           <Settings2 size={19} strokeWidth={1.8} />
-        </button>
+        </button>}
 
         {flyoutOpen && selectedSection && (
-          <div className="hz-nav-flyout" role="dialog" aria-label={`${selectedSection.label} navigation`}>
+          <div className="hz-nav-flyout" style={{ '--hz-flyout-top': `${flyoutTop}px` }} role="navigation" aria-label={`${selectedSection.label} navigation`}>
             <div className="hz-nav-flyout__header">
               <div>
                 <p>{selectedSection.label}</p>
                 <span>{sectionDescription(selectedSection.id)}</span>
               </div>
-              <button type="button" className="hz-icon-btn" onClick={() => setFlyoutOpen(false)} aria-label="Close navigation">
-                <X size={17} />
-              </button>
             </div>
-            {favorites.length > 0 && selectedSection.id === 'root' && (
-              <div className="hz-nav-flyout__favorites">
-                <span>Favorites</span>
-                {favorites.slice(0, 3).map((item) => <NavItem key={item.to} item={item} isFavorite={isFavorite(item.to)} onToggleFavorite={toggleFavorite} />)}
-              </div>
-            )}
             <div className="hz-nav-flyout__items">
               {selectedSection.items.map((item) => (
-                <NavItem key={item.to} item={item} isFavorite={isFavorite(item.to)} onToggleFavorite={toggleFavorite} />
+                <NavItem key={item.to} item={item} />
               ))}
             </div>
           </div>
@@ -203,7 +152,7 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
   );
 }
 
-function NavItem({ item, isFavorite, onToggleFavorite }) {
+function NavItem({ item }) {
   const location = useLocation();
   const isActive = isNavItemActive(item, location);
 
@@ -219,21 +168,6 @@ function NavItem({ item, isFavorite, onToggleFavorite }) {
         <item.icon size={18} strokeWidth={2} style={{ flexShrink: 0 }} />
         <span className="text-truncate">{item.label}</span>
       </NavLink>
-      {(
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            onToggleFavorite({ to: item.to, icon: item.icon, label: item.label, end: item.end });
-          }}
-          className="hz-sidebar-fav-btn position-absolute d-flex align-items-center justify-content-center border-0 bg-transparent"
-          style={{ right: 6, top: '50%', transform: 'translateY(-50%)' }}
-          aria-label={isFavorite ? `Remove ${item.label} from favorites` : `Add ${item.label} to favorites`}
-          aria-pressed={isFavorite}
-        >
-          <Star size={14} fill={isFavorite ? 'currentColor' : 'none'} />
-        </button>
-      )}
     </div>
   );
 }

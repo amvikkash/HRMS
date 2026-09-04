@@ -14,6 +14,9 @@ import FormField from '../../components/ui/FormField';
 import { SkeletonCard } from '../../components/ui/Skeleton';
 import PageHeader from '../../components/ui/PageHeader';
 import Tabs from '../../components/ui/Tabs';
+import FilterBar from '../../components/ui/FilterBar';
+import StatusBadge from '../../components/ui/StatusBadge';
+import ErrorBanner from '../../components/ui/ErrorBanner';
 
 const STATUS_VARIANT = { OPEN: 'success', ON_HOLD: 'warning', CLOSED: 'neutral' };
 const STATUS_TABS = [
@@ -51,7 +54,7 @@ export default function JobOpenings() {
     <div className="d-flex flex-column gap-4">
       <PageHeader eyebrow="Talent" title="Recruitment" description="Job openings and candidate pipelines" actions={<Button icon={Plus} onClick={() => setShowCreate(true)}>New Requisition</Button>} />
 
-      <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
+      <FilterBar className="justify-content-between">
         <Tabs items={STATUS_TABS} value={status} onChange={setStatus} className="border-0" />
         <div className="position-relative" style={{ width: 240 }}>
           <Search size={14} className="position-absolute" style={{ left: 10, top: 9, color: 'var(--hz-text-muted)' }} />
@@ -63,7 +66,7 @@ export default function JobOpenings() {
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-      </div>
+      </FilterBar>
 
       {isError && <ErrorState description="Couldn't load job openings." onRetry={refetch} />}
 
@@ -99,9 +102,7 @@ export default function JobOpenings() {
                   <Card hoverable>
                     <div className="d-flex align-items-start justify-content-between mb-2">
                       <h3 style={{ fontSize: 'var(--hz-text-base)', fontWeight: 600, color: 'var(--hz-text-primary)', margin: 0 }}>{o.title}</h3>
-                      <Badge variant={STATUS_VARIANT[o.status]} dot>
-                        {o.status.replace('_', ' ')}
-                      </Badge>
+                      <StatusBadge status={o.status} variant={STATUS_VARIANT[o.status]} dot>{o.status.replace('_', ' ')}</StatusBadge>
                     </div>
                     <p style={{ fontSize: 'var(--hz-text-sm)', color: 'var(--hz-text-secondary)', marginBottom: 12 }}>
                       {o.departmentName || 'Any department'} {o.designationTitle ? `· ${o.designationTitle}` : ''}
@@ -160,9 +161,7 @@ function CreateJobOpeningModal({ onClose }) {
     <Dialog open onClose={onClose} title="New Requisition" size="md">
       <form onSubmit={handleSubmit}>
         {error && (
-          <div className="mb-3 px-3 py-2" style={{ background: 'var(--hz-danger-50)', color: 'var(--hz-danger-600)', borderRadius: 8, fontSize: 13 }}>
-            {error}
-          </div>
+          <ErrorBanner>{error}</ErrorBanner>
         )}
         <FormField label="Job Title" value={form.title} onChange={(v) => set('title', v)} required />
         <div className="row g-3 mb-3">

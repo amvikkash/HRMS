@@ -18,6 +18,10 @@ import Badge from '../../components/ui/Badge';
 import Table from '../../components/ui/Table';
 import Button from '../../components/ui/Button';
 import Dialog from '../../components/ui/Dialog';
+import PageHeader from '../../components/ui/PageHeader';
+import FilterBar from '../../components/ui/FilterBar';
+import StatusBadge from '../../components/ui/StatusBadge';
+import ErrorBanner from '../../components/ui/ErrorBanner';
 
 const AGENT_DOWNLOAD_URL = import.meta.env.VITE_AGENT_DOWNLOAD_URL || '';
 
@@ -87,9 +91,9 @@ export default function Devices() {
       key: 'status',
       label: 'Status',
       render: (d) => (
-        <Badge variant={isDeviceOnline(d) ? 'success' : 'neutral'} dot>
+        <StatusBadge status={isDeviceOnline(d) ? 'ACTIVE' : 'INACTIVE'} variant={isDeviceOnline(d) ? 'success' : 'neutral'} dot>
           {isDeviceOnline(d) ? 'Online' : 'Offline'}
-        </Badge>
+        </StatusBadge>
       ),
     },
     {
@@ -120,15 +124,9 @@ export default function Devices() {
 
   return (
     <div className="d-flex flex-column gap-4">
-      <div className="d-flex align-items-start justify-content-between gap-3 flex-wrap">
-        <div>
-          <h1 style={{ fontSize: 'var(--hz-text-2xl)', fontWeight: 700 }}>Monitored Devices</h1>
-          <p className="text-secondary-hz" style={{ fontSize: 'var(--hz-text-sm)' }}>Every device enrolled with the Windows Agent</p>
-        </div>
-        <Button icon={Plus} onClick={openConnect}>Connect Device</Button>
-      </div>
+      <PageHeader eyebrow="Monitoring" title="Monitored Devices" description="Every device enrolled with the Windows Agent" actions={<Button icon={Plus} onClick={openConnect}>Connect Device</Button>} />
 
-      <div className="d-flex align-items-center gap-2 flex-wrap">
+      <FilterBar>
         <div className="position-relative" style={{ maxWidth: 360, width: '100%' }}>
           <Search size={16} className="position-absolute" style={{ left: 12, top: 10, color: 'var(--hz-text-muted)' }} />
           <input
@@ -147,7 +145,7 @@ export default function Devices() {
             </option>
           ))}
         </select>
-      </div>
+      </FilterBar>
 
       <Card bodyClassName="p-0">
         <Table
@@ -173,7 +171,7 @@ export default function Devices() {
           <form onSubmit={(event) => { event.preventDefault(); enroll.mutate(); }} className="d-flex flex-column gap-4">
             <div className="d-flex gap-3"><Badge variant="primary">Step 1</Badge><div className="flex-grow-1"><h4 className="mb-1" style={{ fontSize: 'var(--hz-text-base)' }}>Download Vettri Agent</h4><p className="text-secondary-hz mb-2" style={{ fontSize: 'var(--hz-text-sm)' }}>Download the installer for the employee's Windows computer.</p>{AGENT_DOWNLOAD_URL ? <a className="btn btn-outline-primary d-inline-flex align-items-center gap-2" href={AGENT_DOWNLOAD_URL} target="_blank" rel="noreferrer"><Download size={16} /> Download Vettri Agent</a> : <Button type="button" variant="secondary" icon={Download} disabled>Installer link unavailable</Button>}</div></div>
             <div className="d-flex gap-3"><Badge variant="primary">Step 2</Badge><div><h4 className="mb-1" style={{ fontSize: 'var(--hz-text-base)' }}>Install Vettri Agent</h4><p className="text-secondary-hz mb-0" style={{ fontSize: 'var(--hz-text-sm)' }}>Run the installer on the employee's Windows computer.</p></div></div>
-            <div className="d-flex gap-3"><Badge variant="primary">Step 3</Badge><div className="flex-grow-1"><h4 className="mb-1" style={{ fontSize: 'var(--hz-text-base)' }}>Create enrollment token</h4><p className="text-secondary-hz mb-3" style={{ fontSize: 'var(--hz-text-sm)' }}>Create a secure, company-scoped token to paste into the installer.</p><label className="form-label">Device name<input className="form-control mt-1" value={deviceName} onChange={(event) => setDeviceName(event.target.value)} placeholder="e.g. Priya's Windows PC" required maxLength={150} /></label>{enroll.isError && <p className="text-danger mb-3">{enroll.error?.response?.data?.message || 'Could not create the enrollment token.'}</p>}<Button type="submit" icon={ShieldCheck} loading={enroll.isPending} disabled={!deviceName.trim()}>Generate enrollment token</Button></div></div>
+            <div className="d-flex gap-3"><Badge variant="primary">Step 3</Badge><div className="flex-grow-1"><h4 className="mb-1" style={{ fontSize: 'var(--hz-text-base)' }}>Create enrollment token</h4><p className="text-secondary-hz mb-3" style={{ fontSize: 'var(--hz-text-sm)' }}>Create a secure, company-scoped token to paste into the installer.</p><label className="hz-form-label">Device name<input className="form-control mt-1" value={deviceName} onChange={(event) => setDeviceName(event.target.value)} placeholder="e.g. Priya's Windows PC" required maxLength={150} /></label>{enroll.isError && <ErrorBanner>{enroll.error?.response?.data?.message || 'Could not create the enrollment token.'}</ErrorBanner>}<Button type="submit" icon={ShieldCheck} loading={enroll.isPending} disabled={!deviceName.trim()}>Generate enrollment token</Button></div></div>
           </form>
         ) : (
           <div className="d-flex flex-column gap-4"><div className="d-flex align-items-center gap-2"><Badge variant={connectedDevice ? 'success' : 'warning'} dot>{connectedDevice ? 'Device connected' : 'Waiting for device...'}</Badge></div><div><p className="text-secondary-hz mb-2" style={{ fontSize: 'var(--hz-text-sm)' }}>Enrollment token</p><div className="input-group"><input className="form-control" value={enrollment.rawToken || ''} readOnly aria-label="Enrollment token" /><Button type="button" variant="secondary" icon={Copy} onClick={copyToken}>Copy token</Button></div><p className="text-secondary-hz mt-2 mb-0" style={{ fontSize: 12 }}>This one-time token is issued by the backend. Paste it into the installer and keep it private.</p></div>{connectedDevice && <div className="hz-card p-3"><div className="d-flex align-items-center gap-2 mb-3"><Check size={18} color="var(--hz-success-600)" /><strong>Device connected</strong></div><div className="row g-3" style={{ fontSize: 'var(--hz-text-sm)' }}><div className="col-6"><span className="text-secondary-hz d-block">Device name</span>{getDeviceName(connectedDevice)}</div><div className="col-6"><span className="text-secondary-hz d-block">Employee</span>{getDeviceEmployeeName(connectedDevice) || 'Unassigned'}</div><div className="col-6"><span className="text-secondary-hz d-block">Operating system</span>{getDeviceOS(connectedDevice)}</div><div className="col-6"><span className="text-secondary-hz d-block">Agent version</span>{getDeviceAgentVersion(connectedDevice)}</div><div className="col-12"><span className="text-secondary-hz d-block">Last heartbeat</span>{timeAgoIST(getDeviceLastSeen(connectedDevice))}</div></div></div>}{!connectedDevice && <p className="text-secondary-hz mb-0" style={{ fontSize: 'var(--hz-text-sm)' }}>The device will appear here after the agent's first heartbeat.</p>}</div>

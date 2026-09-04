@@ -5,6 +5,7 @@ import { interviewsApi } from '../../api/endpoints/recruitment';
 import Button from '../../components/ui/Button';
 import Dialog from '../../components/ui/Dialog';
 import FormField from '../../components/ui/FormField';
+import ErrorBanner from '../../components/ui/ErrorBanner';
 
 // Mirrors InterviewService.submitDecision's per-round decision vocabulary on the backend.
 const DECISIONS_BY_ROUND = {
@@ -89,9 +90,7 @@ export default function InterviewDecisionModal({ interview, onClose }) {
     <Dialog open onClose={onClose} title="Interview Decision" description={interview.candidateName} size="md">
       <form onSubmit={handleSubmit}>
         {error && (
-          <div className="mb-3 px-3 py-2" style={{ background: 'var(--hz-danger-50)', color: 'var(--hz-danger-600)', borderRadius: 8, fontSize: 13 }}>
-            {error}
-          </div>
+          <ErrorBanner>{error}</ErrorBanner>
         )}
 
         <RatingInput label="Technical Rating" value={technicalRating} onChange={setTechnicalRating} />

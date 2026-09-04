@@ -12,6 +12,11 @@ export const attendanceApi = {
   streamUrl: () => `${API_BASE_URL}/api/attendance/stream?token=${encodeURIComponent(tokenStorage.getAccessToken() || '')}`,
 };
 
+export const workSessionApi = {
+  start: (workingMode = 'OFFICE') => axiosClient.post('/api/worksession/start', { workingMode }).then((res) => res.data),
+  stop: () => axiosClient.post('/api/worksession/stop').then((res) => res.data),
+};
+
 export const devicesApi = {
   list: () => axiosClient.get('/api/devices').then((res) => res.data),
   rename: (id, deviceName) => axiosClient.patch(`/api/devices/${id}/rename`, { deviceName }).then((res) => res.data),

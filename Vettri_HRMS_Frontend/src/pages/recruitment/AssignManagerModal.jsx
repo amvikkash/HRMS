@@ -6,6 +6,7 @@ import { employeesApi } from '../../api/endpoints/employees';
 import Button from '../../components/ui/Button';
 import Dialog from '../../components/ui/Dialog';
 import FormField from '../../components/ui/FormField';
+import ErrorBanner from '../../components/ui/ErrorBanner';
 
 /**
  * "Select for Manager Round" from the HR interview decision. Distinct
@@ -56,9 +57,7 @@ export default function AssignManagerModal({ candidate, onClose }) {
     <Dialog open onClose={onClose} title="Assign Manager Round" description={`${candidate.fullName} · ${candidate.jobOpeningTitle}`} size="md">
       <form onSubmit={handleSubmit}>
         {error && (
-          <div className="mb-3 px-3 py-2" style={{ background: 'var(--hz-danger-50)', color: 'var(--hz-danger-600)', borderRadius: 8, fontSize: 13 }}>
-            {error}
-          </div>
+          <ErrorBanner>{error}</ErrorBanner>
         )}
 
         <FormField as="select" label="Hiring Manager" required value={managerEmployeeId} onChange={setManagerEmployeeId}>

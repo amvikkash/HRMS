@@ -13,9 +13,9 @@ export default function MainLayout() {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, selectedCompanyId } = useAuth();
+  const { user, selectedCompanyId, hasRole } = useAuth();
   const needsWorkspace = user?.roles?.includes('SUPER_ADMIN') && !selectedCompanyId && location.pathname !== '/settings/platform';
-  const isDashboardContext = ['/dashboard', '/welcome', '/support'].includes(location.pathname);
+  const isDashboardContext = !hasRole('EMPLOYEE') && ['/dashboard', '/welcome', '/support'].includes(location.pathname);
 
   // Below the lg breakpoint the sidebar is an overlay drawer, not part of
   // the flex layout (see hz-sidebar-mobile-* in components.css) - close it
@@ -27,25 +27,25 @@ export default function MainLayout() {
 
   return (
     <NavMemoryProvider>
-      <div className="d-flex" style={{ minHeight: '100vh', background: 'var(--hz-bg-canvas)' }}>
+      <div className="hz-app-shell d-flex">
         <Sidebar
           collapsed={collapsed}
           onToggle={() => setCollapsed((c) => !c)}
           mobileOpen={mobileNavOpen}
           onCloseMobile={() => setMobileNavOpen(false)}
         />
-        <div className="d-flex flex-column flex-grow-1" style={{ minWidth: 0 }}>
+        <div className="hz-app-shell__content d-flex flex-column flex-grow-1">
           <Topbar onOpenMobileNav={() => setMobileNavOpen(true)} />
           {isDashboardContext && (
             <div className="hz-contextual-nav-wrap">
               <div className="hz-contextual-nav" aria-label="Dashboard context navigation">
-                <button type="button" className={location.pathname === '/dashboard' ? 'active' : ''} onClick={() => navigate('/dashboard')}>Overview</button>
-                <button type="button" className={location.pathname === '/welcome' ? 'active' : ''} onClick={() => navigate('/welcome')}>Welcome</button>
-                <button type="button" className={location.pathname === '/support' ? 'active' : ''} onClick={() => navigate('/support')}>Support info</button>
+                <button type="button" aria-current={location.pathname === '/dashboard' ? 'page' : undefined} className={location.pathname === '/dashboard' ? 'active' : ''} onClick={() => navigate('/dashboard')}>Overview</button>
+                <button type="button" aria-current={location.pathname === '/welcome' ? 'page' : undefined} className={location.pathname === '/welcome' ? 'active' : ''} onClick={() => navigate('/welcome')}>Welcome</button>
+                <button type="button" aria-current={location.pathname === '/support' ? 'page' : undefined} className={location.pathname === '/support' ? 'active' : ''} onClick={() => navigate('/support')}>Support info</button>
               </div>
             </div>
           )}
-          <main className="hz-main-content hz-page-transition flex-grow-1 p-3 p-md-4">
+          <main className="hz-main-content hz-page-transition flex-grow-1">
             <BreadcrumbProvider>
               <Breadcrumbs />
               {needsWorkspace ? <WorkspaceRequired /> : <Outlet />}

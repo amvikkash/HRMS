@@ -6,6 +6,7 @@ import { employeesApi } from '../../api/endpoints/employees';
 import Button from '../../components/ui/Button';
 import Badge from '../../components/ui/Badge';
 import PageHeader from '../../components/ui/PageHeader';
+import ErrorBanner from '../../components/ui/ErrorBanner';
 
 export default function EmployeeImport() {
   const inputRef = useRef(null); const navigate = useNavigate(); const queryClient = useQueryClient();
@@ -32,7 +33,7 @@ export default function EmployeeImport() {
       </div></div></div>
       <div className="col-12 col-xl-8"><div className="card border-0" style={{ boxShadow: 'var(--hz-shadow-md)' }}><div className="card-body p-4">
         <div className="d-flex align-items-center gap-3 mb-4"><Step number="2" active={!!result} /><div><strong>Review validation</strong><div className="small text-secondary-hz">Every row is checked before import</div></div></div>
-        {error && <div className="alert alert-danger py-2">{error}</div>}
+        {error && <ErrorBanner>{error}</ErrorBanner>}
         {!result && <div className="py-5 text-center text-secondary-hz"><FileSpreadsheet size={42} strokeWidth={1.3} /><p className="mt-3 mb-0">Your validated preview will appear here.</p></div>}
         {result && <><div className="d-flex flex-wrap gap-3 mb-4"><Summary label="Valid employees" value={result.validRows} good /><Summary label="Rows needing attention" value={result.invalidRows} good={!result.invalidRows} /></div><div className="table-responsive"><table className="table align-middle"><thead><tr><th>Row</th><th>Employee</th><th>Email</th><th>Department</th><th>Status</th><th>Result</th></tr></thead><tbody>{result.rows.map((row) => <tr key={row.row}><td>{row.row}</td><td><strong>{[row.firstName, row.lastName].filter(Boolean).join(' ') || '—'}</strong><div className="small text-secondary-hz">{row.employeeCode || 'No code'}</div></td><td>{row.email || '—'}</td><td>{row.department || '—'}</td><td>{row.status || 'Active'}</td><td>{row.valid ? <Badge variant="success" dot>Valid</Badge> : <div className="text-danger small">{row.errors?.join('; ')}</div>}</td></tr>)}</tbody></table></div><div className="d-flex justify-content-between align-items-center border-top pt-3 mt-2"><span className="small text-secondary-hz">{validOnly ? 'Only valid rows will be imported.' : 'All rows passed validation.'}</span><Button onClick={() => commit.mutate({ file, validOnly })} loading={commit.isPending} disabled={!ready}>{validOnly ? `Import ${result.validRows} valid employees` : `Import ${result.validRows} employees`}</Button></div></>}
       </div></div></div>

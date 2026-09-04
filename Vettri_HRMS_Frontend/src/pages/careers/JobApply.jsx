@@ -7,6 +7,7 @@ import Button from '../../components/ui/Button';
 import ErrorState from '../../components/ui/ErrorState';
 import { SkeletonText } from '../../components/ui/Skeleton';
 import PublicLayout from './PublicLayout';
+import ErrorBanner from '../../components/ui/ErrorBanner';
 
 const MAX_RESUME_MB = 10;
 
@@ -113,11 +114,7 @@ export default function JobApply() {
       <div className="hz-surface p-4">
         <h2 style={{ fontSize: 'var(--hz-text-lg)', fontWeight: 600, marginBottom: 16 }}>Apply for this role</h2>
         <form onSubmit={handleSubmit}>
-          {error && (
-            <div className="mb-3 px-3 py-2" style={{ background: 'var(--hz-danger-50)', color: 'var(--hz-danger-600)', borderRadius: 8, fontSize: 13 }}>
-              {error}
-            </div>
-          )}
+          {error && <ErrorBanner>{error}</ErrorBanner>}
           <div className="row g-3 mb-3">
             <div className="col-6">
               <label className="form-label" style={{ fontSize: 'var(--hz-text-sm)', fontWeight: 500 }}>First Name *</label>

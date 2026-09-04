@@ -22,7 +22,7 @@ const SIZE_WIDTH = { sm: 420, md: 560, lg: 680, xl: 860 };
  * need one (e.g. CreateEmployeeModal keeps its submit button inside the
  * scrollable form, which is also fine).
  */
-export default function Dialog({ open, onClose, title, description, size = 'md', footer, children }) {
+export default function Dialog({ open, onClose, title, description, size = 'md', footer, children, hasUnsavedChanges = false }) {
   const dialogRef = useRef(null);
   const lastFocusedRef = useRef(null);
   const titleId = useId();
@@ -42,9 +42,14 @@ export default function Dialog({ open, onClose, title, description, size = 'md',
     );
     (focusable || dialogRef.current)?.focus();
 
+    function requestClose() {
+      if (hasUnsavedChanges && !window.confirm('Discard your unsaved changes?')) return;
+      onClose();
+    }
+
     function handleKeyDown(e) {
       if (e.key === 'Escape') {
-        onClose();
+        requestClose();
         return;
       }
       if (e.key === 'Tab' && dialogRef.current) {
@@ -70,14 +75,16 @@ export default function Dialog({ open, onClose, title, description, size = 'md',
       document.body.style.overflow = previousOverflow;
       lastFocusedRef.current?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open, onClose, hasUnsavedChanges]);
 
   if (!open) return null;
 
   return (
     <div
       className="hz-dialog-backdrop position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
-      onClick={onClose}
+      onClick={() => {
+        if (!hasUnsavedChanges || window.confirm('Discard your unsaved changes?')) onClose();
+      }}
     >
       <div
         ref={dialogRef}
@@ -99,7 +106,7 @@ export default function Dialog({ open, onClose, title, description, size = 'md',
               )}
               {description && <p className="hz-dialog__description">{description}</p>}
             </div>
-            <button type="button" onClick={onClose} className="hz-dialog__close" aria-label="Close dialog">
+            <button type="button" onClick={() => { if (!hasUnsavedChanges || window.confirm('Discard your unsaved changes?')) onClose(); }} className="hz-dialog__close" aria-label="Close dialog">
               <X size={18} />
             </button>
           </div>

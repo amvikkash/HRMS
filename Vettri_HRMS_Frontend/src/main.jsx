@@ -14,6 +14,7 @@ import './components/ui/components.css';
 import { queryClient } from './api/queryClient';
 import { AuthProvider } from './auth/AuthContext';
 import { ToastProvider } from './components/ui/Toast';
+import { ThemeProvider } from './contexts/ThemeContext';
 import App from './App.jsx';
 
 class AppErrorBoundary extends React.Component {
@@ -45,9 +46,11 @@ ReactDOM.createRoot(document.getElementById('root')).render(
       <BrowserRouter>
         <QueryClientProvider client={queryClient}>
           <AuthProvider>
-            <ToastProvider>
-              <App />
-            </ToastProvider>
+            <ThemeProvider>
+              <ToastProvider>
+                <App />
+              </ToastProvider>
+            </ThemeProvider>
           </AuthProvider>
         </QueryClientProvider>
       </BrowserRouter>

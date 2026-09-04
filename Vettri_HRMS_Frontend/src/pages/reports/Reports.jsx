@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Download, Users, Clock, CalendarDays, Briefcase, Bookmark, Plus, X } from 'lucide-react';
+import { Download, Users, Clock, CalendarDays, Briefcase, Bookmark, Plus, X, Filter, RefreshCcw } from 'lucide-react';
+import { BarChart, Bar as RechartsBar, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { reportsApi } from '../../api/endpoints/reports';
 import { exportToCsv } from '../../utils/exportToCsv';
 import Card from '../../components/ui/Card';
@@ -12,6 +13,10 @@ import ErrorState from '../../components/ui/ErrorState';
 import { SkeletonCard } from '../../components/ui/Skeleton';
 import PageHeader from '../../components/ui/PageHeader';
 import Tabs from '../../components/ui/Tabs';
+import FilterBar from '../../components/ui/FilterBar';
+import StatCard from '../../components/ui/StatCard';
+import ChartCard from '../../components/ui/ChartCard';
+import ExportMenu from '../../components/ui/ExportMenu';
 
 const TABS = [
   { key: 'employees', label: 'Employee', icon: Users },
@@ -164,14 +169,22 @@ function Bar({ label, value, max, to }) {
   );
 }
 
-function Stat({ label, value }) {
+function ReportBarChart({ data, color = 'var(--hz-primary-500)' }) {
+  if (!data?.length) return <p className="hz-report-empty">No data available for this view.</p>;
   return (
-    <Card>
-      <p className="text-secondary-hz mb-1" style={{ fontSize: 'var(--hz-text-sm)' }}>
-        {label}
-      </p>
-      <p style={{ fontSize: 'var(--hz-text-3xl)', fontWeight: 700, marginBottom: 0 }}>{value}</p>
-    </Card>
+    <div className="hz-report-chart" aria-label="Report chart">
+      <ResponsiveContainer width="100%" height={190}>
+        <BarChart data={data} margin={{ top: 8, right: 8, left: -20, bottom: 8 }}>
+          <CartesianGrid vertical={false} stroke="var(--hz-border)" strokeDasharray="3 3" />
+          <XAxis dataKey="label" tick={{ fill: 'var(--hz-text-muted)', fontSize: 10 }} tickLine={false} axisLine={false} interval={0} angle={data.length > 5 ? -25 : 0} textAnchor={data.length > 5 ? 'end' : 'middle'} height={data.length > 5 ? 48 : 24} />
+          <YAxis allowDecimals={false} tick={{ fill: 'var(--hz-text-muted)', fontSize: 10 }} tickLine={false} axisLine={false} />
+          <Tooltip cursor={{ fill: 'var(--hz-primary-50)' }} contentStyle={{ border: '1px solid var(--hz-border)', borderRadius: 8, boxShadow: 'var(--hz-shadow-md)', fontSize: 12 }} />
+          <RechartsBar dataKey="value" radius={[5, 5, 0, 0]} name="Count">
+            {data.map((entry) => <Cell key={entry.label} fill={entry.color || color} />)}
+          </RechartsBar>
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
@@ -185,25 +198,57 @@ export default function Reports() {
   const [attendanceStart, setAttendanceStart] = useState(weekAgo);
   const [attendanceEnd, setAttendanceEnd] = useState(today);
   const [leaveYear, setLeaveYear] = useState(new Date().getFullYear());
+  const [departmentFilter, setDepartmentFilter] = useState('all');
+  const [statusFilter, setStatusFilter] = useState('all');
 
   function restoreView(view) {
     setTab(view.tab);
     if (view.attendanceStart) setAttendanceStart(view.attendanceStart);
     if (view.attendanceEnd) setAttendanceEnd(view.attendanceEnd);
     if (view.leaveYear) setLeaveYear(view.leaveYear);
+    if (view.departmentFilter) setDepartmentFilter(view.departmentFilter);
+    if (view.statusFilter) setStatusFilter(view.statusFilter);
   }
 
-  const currentView = { tab, attendanceStart, attendanceEnd, leaveYear };
+  const currentView = { tab, attendanceStart, attendanceEnd, leaveYear, departmentFilter, statusFilter };
+
+  function resetFilters() {
+    setAttendanceStart(weekAgo);
+    setAttendanceEnd(today);
+    setLeaveYear(new Date().getFullYear());
+    setDepartmentFilter('all');
+    setStatusFilter('all');
+  }
 
   return (
     <div className="d-flex flex-column gap-4">
-      <PageHeader eyebrow="Insights" title="Reports & Analytics" description="Live numbers pulled from your workforce data" />
+      <PageHeader
+        eyebrow="Insights"
+        title="Reports & Analytics"
+        description="Live numbers pulled from your workforce data"
+        actions={<ExportMenu options={[{ label: 'Export current view', value: 'current', icon: Download }]} onExport={() => window.print()} />}
+      />
 
-      <Tabs items={TABS} value={tab} onChange={setTab} />
+      <div className="hz-reports__toolbar">
+        <Tabs items={TABS} value={tab} onChange={setTab} ariaLabel="Report categories" />
+        <span className="hz-reports__updated">Updated just now</span>
+      </div>
+
+      <FilterBar className="hz-reports__filters" aria-label="Report filters">
+        <span className="hz-reports__filter-label"><Filter size={14} /> Filters</span>
+        {tab === 'attendance' && <>
+          <label className="hz-reports__filter-control">From <input type="date" className="form-control form-control-sm" value={attendanceStart} onChange={(e) => setAttendanceStart(e.target.value)} /></label>
+          <label className="hz-reports__filter-control">To <input type="date" className="form-control form-control-sm" value={attendanceEnd} onChange={(e) => setAttendanceEnd(e.target.value)} /></label>
+        </>}
+        {tab === 'leave' && <label className="hz-reports__filter-control">Year <input type="number" className="form-control form-control-sm" value={leaveYear} onChange={(e) => setLeaveYear(Number(e.target.value))} /></label>}
+        {(tab === 'employees' || tab === 'attendance' || tab === 'leave') && <label className="hz-reports__filter-control">Department <select className="form-select form-select-sm" value={departmentFilter} onChange={(e) => setDepartmentFilter(e.target.value)}><option value="all">All departments</option><option value="assigned">Assigned departments</option></select></label>}
+        {tab === 'employees' && <label className="hz-reports__filter-control">Status <select className="form-select form-select-sm" value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)}><option value="all">All statuses</option><option value="ACTIVE">Active</option><option value="INACTIVE">Inactive</option></select></label>}
+        <button type="button" className="hz-reports__reset" onClick={resetFilters}><RefreshCcw size={14} /> Reset</button>
+      </FilterBar>
 
       <SavedReportsBar currentView={currentView} onRestore={restoreView} />
 
-      {tab === 'employees' && <EmployeeReportPanel />}
+      {tab === 'employees' && <EmployeeReportPanel departmentFilter={departmentFilter} statusFilter={statusFilter} />}
       {tab === 'attendance' && (
         <AttendanceReportPanel startDate={attendanceStart} endDate={attendanceEnd} onChangeStart={setAttendanceStart} onChangeEnd={setAttendanceEnd} />
       )}
@@ -213,25 +258,26 @@ export default function Reports() {
   );
 }
 
-function EmployeeReportPanel() {
+function EmployeeReportPanel({ departmentFilter, statusFilter }) {
   const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['report-employees'], queryFn: reportsApi.employees });
 
   if (isLoading) return <SkeletonGrid />;
   if (isError) return <ErrorState description="Couldn't load the employee report." onRetry={refetch} />;
 
   const maxDept = Math.max(1, ...data.byDepartment.map((d) => d.count));
+  const statusEntries = Object.entries(data.byStatus).filter(([status]) => statusFilter === 'all' || status === statusFilter);
 
   return (
     <div className="d-flex flex-column gap-3">
       <div className="row g-3">
-        <div className="col-6 col-xl-3"><Stat label="Total Employees" value={data.totalEmployees} /></div>
-        <div className="col-6 col-xl-3"><Stat label="Joined Last 30 Days" value={data.newJoinersLast30Days} /></div>
-        <div className="col-6 col-xl-3"><Stat label="Joined Last 90 Days" value={data.newJoinersLast90Days} /></div>
-        <div className="col-6 col-xl-3"><Stat label="Separations (90d)" value={data.separationsLast90Days} /></div>
+        <div className="col-6 col-xl-3"><StatCard label="Total employees" value={data.totalEmployees} detail="Current workforce" icon={Users} /></div>
+        <div className="col-6 col-xl-3"><StatCard label="New joiners" value={data.newJoinersLast30Days} detail="Last 30 days" icon={Users} accent="success" /></div>
+        <div className="col-6 col-xl-3"><StatCard label="New joiners" value={data.newJoinersLast90Days} detail="Last 90 days" icon={Users} accent="info" /></div>
+        <div className="col-6 col-xl-3"><StatCard label="Separations" value={data.separationsLast90Days} detail="Last 90 days" icon={Users} accent="warning" /></div>
       </div>
       <div className="row g-3">
         <div className="col-12 col-lg-6">
-          <Card
+          <ChartCard
             title="Headcount by Status"
             actions={
               <Button size="sm" variant="secondary" icon={Download} onClick={() => exportToCsv('employee-status-report', Object.entries(data.byStatus).map(([status, count]) => ({ status, count })))}>
@@ -239,13 +285,14 @@ function EmployeeReportPanel() {
               </Button>
             }
           >
-            {Object.entries(data.byStatus).map(([status, count]) => (
+            <ReportBarChart data={statusEntries.map(([status, count]) => ({ label: status.replace('_', ' '), value: count }))} color="var(--hz-primary-500)" />
+            {statusEntries.map(([status, count]) => (
               <Bar key={status} label={status.replace('_', ' ')} value={count} max={data.totalEmployees} />
             ))}
-          </Card>
+          </ChartCard>
         </div>
         <div className="col-12 col-lg-6">
-          <Card
+          <ChartCard
             title="Headcount by Department"
             actions={
               <Button size="sm" variant="secondary" icon={Download} onClick={() => exportToCsv('employee-department-report', data.byDepartment.map((d) => ({ department: d.departmentName, count: d.count })))}>
@@ -253,8 +300,9 @@ function EmployeeReportPanel() {
               </Button>
             }
           >
-            {data.byDepartment.length === 0 && <p style={{ fontSize: 13, color: 'var(--hz-text-muted)' }}>No department assignments yet.</p>}
-            {data.byDepartment.map((d) => (
+            {departmentFilter === 'assigned' && data.byDepartment.length === 0 && <p style={{ fontSize: 13, color: 'var(--hz-text-muted)' }}>No department assignments yet.</p>}
+            {departmentFilter !== 'assigned' && <ReportBarChart data={data.byDepartment.map((d) => ({ label: d.departmentName, value: d.count }))} color="var(--hz-accent-500)" />}
+            {departmentFilter === 'assigned' && data.byDepartment.map((d) => (
               <Bar
                 key={d.departmentName}
                 label={d.departmentName}
@@ -263,7 +311,7 @@ function EmployeeReportPanel() {
                 to={`/employees?departmentId=${d.departmentId}&departmentName=${encodeURIComponent(d.departmentName)}`}
               />
             ))}
-          </Card>
+          </ChartCard>
         </div>
       </div>
     </div>
@@ -278,19 +326,6 @@ function AttendanceReportPanel({ startDate, endDate, onChangeStart, onChangeEnd 
 
   return (
     <div className="d-flex flex-column gap-3">
-      <Card>
-        <div className="d-flex align-items-end gap-3 flex-wrap">
-          <div>
-            <label className="form-label" style={{ fontSize: 'var(--hz-text-sm)', fontWeight: 500 }}>From</label>
-            <input type="date" className="form-control" value={startDate} onChange={(e) => onChangeStart(e.target.value)} />
-          </div>
-          <div>
-            <label className="form-label" style={{ fontSize: 'var(--hz-text-sm)', fontWeight: 500 }}>To</label>
-            <input type="date" className="form-control" value={endDate} onChange={(e) => onChangeEnd(e.target.value)} />
-          </div>
-        </div>
-      </Card>
-
       {isLoading && <SkeletonGrid />}
       {isError && <ErrorState description="Couldn't load the attendance report." onRetry={refetch} />}
 
@@ -299,13 +334,13 @@ function AttendanceReportPanel({ startDate, endDate, onChangeStart, onChangeEnd 
           <AttendanceHeatmapSection />
 
           <div className="row g-3">
-            <div className="col-6 col-xl-4"><Stat label="Total Punches" value={data.totalPunches} /></div>
-            <div className="col-6 col-xl-4"><Stat label="Unique Employees Punched" value={data.uniqueEmployeesPunched} /></div>
-            <div className="col-6 col-xl-4"><Stat label="Active Employees" value={data.totalActiveEmployees} /></div>
+            <div className="col-6 col-xl-4"><StatCard label="Total punches" value={data.totalPunches} icon={Clock} /></div>
+            <div className="col-6 col-xl-4"><StatCard label="Employees punched" value={data.uniqueEmployeesPunched} icon={Users} accent="info" /></div>
+            <div className="col-6 col-xl-4"><StatCard label="Active employees" value={data.totalActiveEmployees} icon={Users} accent="success" /></div>
           </div>
           <div className="row g-3">
             <div className="col-12 col-lg-7">
-              <Card
+              <ChartCard
                 title="Daily Distinct Employees Punched"
                 actions={
                   <Button size="sm" variant="secondary" icon={Download} onClick={() => exportToCsv('attendance-daily-report', data.dailyDistinctEmployees.map((d) => ({ date: d.date, employeesPunched: d.count })))}>
@@ -313,13 +348,14 @@ function AttendanceReportPanel({ startDate, endDate, onChangeStart, onChangeEnd 
                   </Button>
                 }
               >
+                <ReportBarChart data={data.dailyDistinctEmployees.map((d) => ({ label: new Date(d.date).toLocaleDateString(undefined, { weekday: 'short' }), value: d.count }))} />
                 {data.dailyDistinctEmployees.map((d) => (
                   <Bar key={d.date} label={new Date(d.date).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} value={d.count} max={Math.max(1, data.totalActiveEmployees)} />
                 ))}
-              </Card>
+              </ChartCard>
             </div>
             <div className="col-12 col-lg-5">
-              <Card
+              <ChartCard
                 title="Punches by Department"
                 actions={
                   <Button size="sm" variant="secondary" icon={Download} onClick={() => exportToCsv('attendance-department-report', data.byDepartment.map((d) => ({ department: d.departmentName, punches: d.punchCount })))}>
@@ -328,10 +364,11 @@ function AttendanceReportPanel({ startDate, endDate, onChangeStart, onChangeEnd 
                 }
               >
                 {data.byDepartment.length === 0 && <p style={{ fontSize: 13, color: 'var(--hz-text-muted)' }}>No punches mapped to a department in this range.</p>}
+                <ReportBarChart data={data.byDepartment.map((d) => ({ label: d.departmentName, value: d.punchCount }))} color="var(--hz-accent-500)" />
                 {data.byDepartment.map((d) => (
                   <Bar key={d.departmentName} label={d.departmentName} value={d.punchCount} max={Math.max(1, ...data.byDepartment.map((x) => x.punchCount))} />
                 ))}
-              </Card>
+              </ChartCard>
             </div>
           </div>
         </>
@@ -431,27 +468,20 @@ function LeaveReportPanel({ year, onChangeYear }) {
 
   return (
     <div className="d-flex flex-column gap-3">
-      <Card>
-        <div style={{ maxWidth: 160 }}>
-          <label className="form-label" style={{ fontSize: 'var(--hz-text-sm)', fontWeight: 500 }}>Year</label>
-          <input type="number" className="form-control" value={year} onChange={(e) => onChangeYear(Number(e.target.value))} />
-        </div>
-      </Card>
-
       {isLoading && <SkeletonGrid />}
       {isError && <ErrorState description="Couldn't load the leave report." onRetry={refetch} />}
 
       {!isLoading && !isError && (
         <>
           <div className="row g-3">
-            <div className="col-6 col-xl-3"><Stat label="Total Requests" value={data.totalRequests} /></div>
-            <div className="col-6 col-xl-3"><Stat label="Approved" value={data.approved} /></div>
-            <div className="col-6 col-xl-3"><Stat label="Rejected" value={data.rejected} /></div>
-            <div className="col-6 col-xl-3"><Stat label="Approval Rate" value={`${data.approvalRatePercent}%`} /></div>
+            <div className="col-6 col-xl-3"><StatCard label="Total requests" value={data.totalRequests} icon={CalendarDays} /></div>
+            <div className="col-6 col-xl-3"><StatCard label="Approved" value={data.approved} icon={CalendarDays} accent="success" /></div>
+            <div className="col-6 col-xl-3"><StatCard label="Rejected" value={data.rejected} icon={CalendarDays} accent="danger" /></div>
+            <div className="col-6 col-xl-3"><StatCard label="Approval rate" value={`${data.approvalRatePercent}%`} icon={CalendarDays} accent="info" /></div>
           </div>
           <div className="row g-3">
             <div className="col-12 col-lg-6">
-              <Card
+              <ChartCard
                 title="Approved Days by Leave Type"
                 actions={
                   <Button size="sm" variant="secondary" icon={Download} onClick={() => exportToCsv('leave-type-report', data.byLeaveType.map((l) => ({ leaveType: l.leaveTypeName, approvedDays: l.approvedDays })))}>
@@ -460,13 +490,14 @@ function LeaveReportPanel({ year, onChangeYear }) {
                 }
               >
                 {data.byLeaveType.length === 0 && <p style={{ fontSize: 13, color: 'var(--hz-text-muted)' }}>No approved leave in {year} yet.</p>}
+                <ReportBarChart data={data.byLeaveType.map((l) => ({ label: l.leaveTypeName, value: l.approvedDays }))} color="var(--hz-primary-500)" />
                 {data.byLeaveType.map((l) => (
                   <Bar key={l.leaveTypeName} label={l.leaveTypeName} value={l.approvedDays} max={Math.max(1, ...data.byLeaveType.map((x) => x.approvedDays))} />
                 ))}
-              </Card>
+              </ChartCard>
             </div>
             <div className="col-12 col-lg-6">
-              <Card
+              <ChartCard
                 title="Approved Days by Department"
                 actions={
                   <Button size="sm" variant="secondary" icon={Download} onClick={() => exportToCsv('leave-department-report', data.byDepartment.map((d) => ({ department: d.departmentName, approvedDays: d.approvedDays })))}>
@@ -475,10 +506,11 @@ function LeaveReportPanel({ year, onChangeYear }) {
                 }
               >
                 {data.byDepartment.length === 0 && <p style={{ fontSize: 13, color: 'var(--hz-text-muted)' }}>No approved leave in {year} yet.</p>}
+                <ReportBarChart data={data.byDepartment.map((d) => ({ label: d.departmentName, value: d.approvedDays }))} color="var(--hz-accent-500)" />
                 {data.byDepartment.map((d) => (
                   <Bar key={d.departmentName} label={d.departmentName} value={d.approvedDays} max={Math.max(1, ...data.byDepartment.map((x) => x.approvedDays))} />
                 ))}
-              </Card>
+              </ChartCard>
             </div>
           </div>
         </>
@@ -498,12 +530,12 @@ function RecruitmentReportPanel() {
   return (
     <div className="d-flex flex-column gap-3">
       <div className="row g-3">
-        <div className="col-6 col-xl-3"><Stat label="Open Requisitions" value={data.openRequisitions} /></div>
-        <div className="col-6 col-xl-3"><Stat label="Total Candidates" value={data.totalCandidates} /></div>
-        <div className="col-6 col-xl-3"><Stat label="Hired This Year" value={data.hiredThisYear} /></div>
-        <div className="col-6 col-xl-3"><Stat label="Avg. Days to Hire" value={data.averageDaysToHire ?? '—'} /></div>
+        <div className="col-6 col-xl-3"><StatCard label="Open requisitions" value={data.openRequisitions} icon={Briefcase} /></div>
+        <div className="col-6 col-xl-3"><StatCard label="Total candidates" value={data.totalCandidates} icon={Users} accent="info" /></div>
+        <div className="col-6 col-xl-3"><StatCard label="Hired this year" value={data.hiredThisYear} icon={Users} accent="success" /></div>
+        <div className="col-6 col-xl-3"><StatCard label="Average days to hire" value={data.averageDaysToHire ?? '—'} icon={Clock} accent="warning" /></div>
       </div>
-      <Card
+      <ChartCard
         title="Pipeline Funnel"
         actions={
           <Button size="sm" variant="secondary" icon={Download} onClick={() => exportToCsv('recruitment-pipeline-report', Object.entries(data.byStage).map(([stage, count]) => ({ stage, count })))}>
@@ -511,10 +543,11 @@ function RecruitmentReportPanel() {
           </Button>
         }
       >
+        <ReportBarChart data={Object.entries(data.byStage).map(([stage, count]) => ({ label: stage, value: count }))} color="var(--hz-accent-500)" />
         {Object.entries(data.byStage).map(([stage, count]) => (
           <Bar key={stage} label={stage} value={count} max={maxStage} />
         ))}
-      </Card>
+      </ChartCard>
     </div>
   );
 }

@@ -37,6 +37,10 @@ export default function Table({
   emptyDescription,
   emptyAction,
   ariaLabel = 'Data table',
+  selectable = false,
+  selectedKeys = new Set(),
+  onToggleRow,
+  onToggleAll,
 }) {
   if (isError) {
     return <ErrorState description="Couldn't load this data." onRetry={onRetry} />;
@@ -48,9 +52,10 @@ export default function Table({
 
   return (
     <div className="table-responsive">
-      <table className="table mb-0 align-middle hz-table" aria-label={ariaLabel}>
+      <table className="table mb-0 align-middle hz-table" aria-label={ariaLabel} aria-busy={isLoading || undefined}>
         <thead>
           <tr>
+            {selectable && <th className="hz-table__selection"><input type="checkbox" checked={!isLoading && rows?.length > 0 && rows.every((row, index) => selectedKeys.has(getRowKey(row, index)))} onChange={(event) => onToggleAll?.(event.target.checked)} disabled={isLoading || !rows?.length} aria-label="Select all rows" /></th>}
             {columns.map((col) => (
               <th key={col.key} style={{ width: col.width, textAlign: col.align }} className={col.headerClassName}>
                 {col.label}
@@ -75,8 +80,12 @@ export default function Table({
               <tr
                 key={getRowKey(row, i)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
+                onKeyDown={onRowClick ? (event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onRowClick(row); } } : undefined}
+                tabIndex={onRowClick ? 0 : undefined}
+                aria-label={onRowClick ? `Open row ${i + 1}` : undefined}
                 className={onRowClick ? 'hz-table-row--clickable' : undefined}
               >
+                {selectable && <td className="hz-table__selection" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={selectedKeys.has(getRowKey(row, i))} onChange={() => onToggleRow?.(row)} aria-label={`Select row ${i + 1}`} /></td>}
                 {columns.map((col) => (
                   <td key={col.key} style={{ textAlign: col.align, ...col.style }} className={col.className}>
                     {col.render ? col.render(row) : row[col.key]}

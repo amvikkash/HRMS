@@ -12,28 +12,28 @@
 
 :root {
   /* ---- Brand palette ---- */
-  --hz-primary-50: #eaf2ff;
-  --hz-primary-100: #d9e8ff;
-  --hz-primary-200: #b8d2ff;
-  --hz-primary-300: #86b2ff;
-  --hz-primary-400: #4b93ff;
-  --hz-primary-500: #1769ff;
-  --hz-primary-600: #1769ff;
-  --hz-primary-700: #0f5dcc;
-  --hz-primary-800: #0b1f3a;
-  --hz-primary-900: #07182d;
+  --hz-primary-50: #eff6ff;
+  --hz-primary-100: #dbeafe;
+  --hz-primary-200: #bfdbfe;
+  --hz-primary-300: #93c5fd;
+  --hz-primary-400: #60a5fa;
+  --hz-primary-500: #2563eb;
+  --hz-primary-600: #1d4ed8;
+  --hz-primary-700: #1e40af;
+  --hz-primary-800: #1e3a8a;
+  --hz-primary-900: #172554;
 
-  --hz-accent-500: #c98216;
-  --hz-accent-600: #a9680d;
+  --hz-accent-500: #f97316;
+  --hz-accent-600: #ea580c;
 
   /* ---- Semantic ---- */
   --hz-success-50: #f0fdf4;
-  --hz-success-500: #12b76a;
-  --hz-success-600: #0e9656;
+  --hz-success-500: #16a34a;
+  --hz-success-600: #15803d;
 
   --hz-warning-50: #fffbeb;
-  --hz-warning-500: #f59e0b;
-  --hz-warning-600: #dc6803;
+  --hz-warning-500: #d97706;
+  --hz-warning-600: #b45309;
 
   --hz-danger-50: #fef2f2;
   --hz-danger-500: #ef4444;
@@ -44,7 +44,7 @@
   --hz-info-600: #0369a1;
 
   /* ---- Neutrals (slate) ---- */
-  --hz-gray-50: #f7f9fc;
+  --hz-gray-50: #f8fafc;
   --hz-gray-100: #f1f5f9;
   --hz-gray-200: #e2e8f0;
   --hz-gray-300: #cbd5e1;
@@ -56,14 +56,15 @@
   --hz-gray-900: #0f172a;
 
   /* ---- Surface / text roles ---- */
-  --hz-bg-canvas: #f5f7fb;
+  --hz-bg-canvas: #f4f7fb;
   --hz-bg-surface: #ffffff;
   --hz-bg-surface-hover: var(--hz-gray-50);
-  --hz-bg-sidebar: #0b1f3a;
-  --hz-border: #e2e8f0;
+  --hz-bg-sidebar: #172554;
+  --hz-border-sidebar: #1e3a8a;
+  --hz-border: #e5eaf1;
   --hz-border-strong: var(--hz-gray-300);
-  --hz-text-primary: #10233f;
-  --hz-text-secondary: #64748b;
+  --hz-text-primary: #172033;
+  --hz-text-secondary: #526176;
   /* --hz-gray-400 (#94a3b8) only clears 2.56:1 against white - a real
      WCAG AA failure (needs 4.5:1 for normal text) that would otherwise
      apply everywhere this token is used (timestamps, subtitles, empty-
@@ -73,8 +74,12 @@
      secondary (gray-500 itself only just clears AA at 4.76:1) - so this
      intentionally lands close to secondary rather than picking an
      arbitrary near-duplicate that still fails. */
-  --hz-text-muted: #6d7686;
+  --hz-text-muted: #718096;
   --hz-text-on-primary: #ffffff;
+  --hz-surface-subtle: #f8fafd;
+  --hz-surface-muted: #f1f5f9;
+  --hz-divider: #e5eaf1;
+  --hz-focus: var(--hz-primary-500);
 
   /* ---- Typography ---- */
   --hz-font-sans: 'Manrope Variable', 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
@@ -116,13 +121,13 @@
   --hz-shadow-md: 0 4px 14px -6px rgba(15, 23, 42, 0.12), 0 1px 3px -1px rgba(15, 23, 42, 0.05);
   --hz-shadow-lg: 0 14px 30px -10px rgba(15, 23, 42, 0.14), 0 3px 8px -4px rgba(15, 23, 42, 0.08);
   --hz-shadow-xl: 0 20px 48px -10px rgba(15, 23, 42, 0.16);
-  --hz-shadow-focus: 0 0 0 3px rgba(8, 127, 232, 0.2);
-  --hz-shadow-primary: 0 8px 20px -10px rgba(11, 59, 145, 0.34);
+  --hz-shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.2);
+  --hz-shadow-primary: 0 8px 20px -10px rgba(30, 64, 175, 0.34);
 
   /* ---- Brand gradients ---- */
-  --hz-gradient-primary: #1677ff;
-  --hz-gradient-accent: #c98216;
-  --hz-gradient-surface: #eaf2ff;
+  --hz-gradient-primary: #2563eb;
+  --hz-gradient-accent: #f97316;
+  --hz-gradient-surface: #eff6ff;
 
   /* ---- Layout ---- */
   --hz-sidebar-width: 256px;
@@ -141,6 +146,7 @@
   --hz-bg-surface: #111827;
   --hz-bg-surface-hover: #1a2333;
   --hz-bg-sidebar: #0f1729;
+  --hz-border-sidebar: #263b68;
   --hz-border: #1f2937;
   --hz-border-strong: #2c3a4f;
   --hz-text-primary: #f1f5f9;
@@ -151,6 +157,10 @@
      anywhere in the app yet), but there's no reason to leave a known-
      broken contrast value in scaffolding for whoever wires it up later. */
   --hz-text-muted: #7f8ea3;
+  --hz-surface-subtle: #151f30;
+  --hz-surface-muted: #1a2333;
+  --hz-divider: #263246;
+  --hz-focus: var(--hz-primary-400);
 
   --hz-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
   --hz-shadow-md: 0 4px 12px -3px rgba(0, 0, 0, 0.45), 0 2px 4px -2px rgba(0, 0, 0, 0.3);

@@ -20,7 +20,7 @@ const DEDUCTION_FIELDS = [
 function AmountField({ label, value, onChange }) {
   return (
     <div className="col-6 col-md-4">
-      <label className="form-label" style={{ fontSize: 'var(--hz-text-sm)', fontWeight: 500 }}>
+      <label className="hz-form-label" style={{ fontSize: 'var(--hz-text-sm)', fontWeight: 500 }}>
         {label}
       </label>
       <div className="input-group">

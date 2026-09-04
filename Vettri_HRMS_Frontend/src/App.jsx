@@ -42,6 +42,7 @@ import SettingsAudit from './pages/SettingsAudit';
 import NotFound from './pages/NotFound';
 import Onboarding from './pages/Onboarding';
 import SupportInfo from './pages/SupportInfo';
+import SettingsPreferences from './pages/SettingsPreferences';
 import Welcome from './pages/Welcome';
 import Notifications from './pages/Notifications';
 const Requirements = lazy(() => import('./pages/Requirements'));
@@ -101,6 +102,7 @@ export default function App() {
           <Route path="settings/leave" element={<SettingsLeave />} />
           <Route path="settings/audit" element={<SettingsAudit />} />
           <Route path="settings/platform" element={<SettingsPlatform />} />
+          <Route path="settings/preferences" element={<SettingsPreferences />} />
           <Route path="onboarding" element={<Onboarding />} />
           <Route path="support" element={<SupportInfo />} />
         </Route>

@@ -1,9 +1,16 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { ArrowRight, Building2, CalendarDays, CheckSquare, Clock3, ShieldCheck, Users, Wallet } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import PageHeader from '../components/ui/PageHeader';
 import Card from '../components/ui/Card';
 import Button from '../components/ui/Button';
+import { employeesApi } from '../api/endpoints/employees';
+import { departmentsApi } from '../api/endpoints/organization';
+import { leaveTypesApi } from '../api/endpoints/leave';
+import { devicesApi } from '../api/endpoints/attendance';
+import { payrollApi } from '../api/endpoints/salary';
+import { useAuth } from '../hooks/useAuth';
 
 const STEPS = [
   { title: 'Company profile', description: 'Confirm the workspace identity and core company details.', to: '/settings/organization', icon: Building2 },
@@ -17,15 +24,31 @@ const STEPS = [
 
 export default function Onboarding() {
   const [activeStep, setActiveStep] = useState(0);
+  const { user, hasPermission } = useAuth();
+  const employees = useQuery({ queryKey: ['onboarding-employees'], queryFn: () => employeesApi.list(), enabled: hasPermission('EMPLOYEE_VIEW') });
+  const departments = useQuery({ queryKey: ['onboarding-departments'], queryFn: departmentsApi.list, enabled: hasPermission('ORG_VIEW') });
+  const leaveTypes = useQuery({ queryKey: ['onboarding-leave-types'], queryFn: leaveTypesApi.list, enabled: hasPermission('LEAVE_MANAGE') });
+  const devices = useQuery({ queryKey: ['onboarding-devices'], queryFn: devicesApi.list, enabled: hasPermission('DEVICE_MANAGE') });
+  const payrollRuns = useQuery({ queryKey: ['onboarding-payroll-runs'], queryFn: payrollApi.listRuns, enabled: hasPermission('SALARY_VIEW') });
   const step = STEPS[activeStep];
   const StepIcon = step.icon;
+  const completion = [
+    Boolean(user?.companyName),
+    (departments.data || []).length > 0,
+    (employees.data || []).length > 0,
+    (leaveTypes.data || []).length > 0,
+    (devices.data || []).length > 0,
+    (payrollRuns.data || []).length > 0,
+    true,
+  ];
+  const completedSteps = completion.filter(Boolean).length;
 
   return (
     <div className="hz-onboarding d-flex flex-column gap-4">
       <PageHeader
         eyebrow="Workspace setup"
         title="Set up your Vettri workspace"
-        description="A practical starting point for getting your people operations ready. Progress is not recorded until each destination saves its own data."
+        description={`${completedSteps} of ${STEPS.length} setup areas are ready. Complete the remaining essentials from each workspace.`}
       />
 
       <div className="row g-4 align-items-start">
@@ -41,7 +64,7 @@ export default function Onboarding() {
                     className={`hz-onboarding-step ${activeStep === index ? 'hz-onboarding-step--active' : ''}`}
                     onClick={() => setActiveStep(index)}
                   >
-                    <span className="hz-onboarding-step__number">{index + 1}</span>
+                    <span className="hz-onboarding-step__number">{completion[index] ? '✓' : index + 1}</span>
                     <Icon size={16} />
                     <span>{item.title}</span>
                   </button>

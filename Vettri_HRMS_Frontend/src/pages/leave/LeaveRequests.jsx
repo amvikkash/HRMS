@@ -1,10 +1,10 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { CalendarPlus, Check, X as XIcon, Calendar, Search } from 'lucide-react';
 import { leaveRequestsApi } from '../../api/endpoints/leave';
 import Card from '../../components/ui/Card';
-import Badge from '../../components/ui/Badge';
+import StatusBadge from '../../components/ui/StatusBadge';
 import Button from '../../components/ui/Button';
 import Avatar from '../../components/ui/Avatar';
 import EmptyState from '../../components/ui/EmptyState';
@@ -16,6 +16,9 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../components/ui/Toast';
 import PageHeader from '../../components/ui/PageHeader';
 import FilterBar from '../../components/ui/FilterBar';
+import Dialog from '../../components/ui/Dialog';
+import FormField from '../../components/ui/FormField';
+import Tabs from '../../components/ui/Tabs';
 
 const TABS = [
   { key: 'PENDING', label: 'Pending Approval' },
@@ -26,9 +29,13 @@ export default function LeaveRequests() {
   const [tab, setTab] = useState('PENDING');
   const [search, setSearch] = useState('');
   const [showApply, setShowApply] = useState(false);
+  const [decision, setDecision] = useState(null);
+  const [decisionNote, setDecisionNote] = useState('');
   const queryClient = useQueryClient();
   const { hasPermission } = useAuth();
   const toast = useToast();
+
+  if (!hasPermission('LEAVE_APPROVE') && !hasPermission('LEAVE_MANAGE')) return <Navigate to="/my-profile?tab=leave" replace />;
 
   // A Manager (LEAVE_APPROVE without the broader LEAVE_MANAGE HR/Admin
   // hold) should only see their own team's requests here - the plain
@@ -62,8 +69,10 @@ export default function LeaveRequests() {
   }, [requests, search]);
 
   const decide = useMutation({
-    mutationFn: ({ id, approve }) => (approve ? leaveRequestsApi.approve(id) : leaveRequestsApi.reject(id)),
+    mutationFn: ({ id, approve, note }) => (approve ? leaveRequestsApi.approve(id, note) : leaveRequestsApi.reject(id, note)),
     onSuccess: () => {
+      setDecision(null);
+      setDecisionNote('');
       toast.success('Leave request updated.');
       queryClient.invalidateQueries({ queryKey: ['leave-requests'] });
       queryClient.invalidateQueries({ queryKey: ['dashboard-summary'] });
@@ -90,30 +99,14 @@ export default function LeaveRequests() {
         </div>
       )}
 
-      <FilterBar className="hz-leave-toolbar justify-content-between" style={{ borderBottom: '1px solid var(--hz-border)' }}>
-        <div className="d-flex gap-2">
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className="btn border-0 rounded-0 px-3 py-2"
-              style={{
-                fontSize: 'var(--hz-text-sm)',
-                fontWeight: 600,
-                color: tab === t.key ? 'var(--hz-primary-700)' : 'var(--hz-text-secondary)',
-                borderBottom: tab === t.key ? '2px solid var(--hz-primary-600)' : '2px solid transparent',
-                marginBottom: -1,
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+      <FilterBar className="hz-leave-toolbar justify-content-between">
+        <Tabs items={TABS} value={tab} onChange={setTab} ariaLabel="Leave request status" />
         <div className="position-relative mb-2" style={{ width: 240 }}>
           <Search size={14} className="position-absolute" style={{ left: 10, top: 9, color: 'var(--hz-text-muted)' }} />
           <input
             type="search"
             placeholder="Filter by name, type, dept…"
+            aria-label="Filter leave requests by employee, type, or department"
             className="form-control form-control-sm ps-4"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -179,9 +172,7 @@ export default function LeaveRequests() {
                     </td>
                     <td style={{ fontSize: 'var(--hz-text-sm)' }}>{r.days}</td>
                     <td>
-                      <Badge variant={meta.variant} dot>
-                        {meta.label}
-                      </Badge>
+                      <StatusBadge status={r.status} variant={meta.variant} dot>{meta.label}</StatusBadge>
                     </td>
                     <td className="pe-4 text-end">
                       {r.status === 'PENDING' && (
@@ -189,7 +180,7 @@ export default function LeaveRequests() {
                           <button
                             className="btn btn-sm btn-light border-0"
                             style={{ color: 'var(--hz-success-600)' }}
-                            onClick={() => decide.mutate({ id: r.id, approve: true })}
+                            onClick={() => setDecision({ id: r.id, approve: true, employeeName: r.employeeName })}
                             disabled={decide.isPending}
                             aria-label={`Approve ${r.employeeName}'s leave request`}
                           >
@@ -198,7 +189,7 @@ export default function LeaveRequests() {
                           <button
                             className="btn btn-sm btn-light border-0"
                             style={{ color: 'var(--hz-danger-600)' }}
-                            onClick={() => decide.mutate({ id: r.id, approve: false })}
+                            onClick={() => setDecision({ id: r.id, approve: false, employeeName: r.employeeName })}
                             disabled={decide.isPending}
                             aria-label={`Reject ${r.employeeName}'s leave request`}
                           >
@@ -217,6 +208,12 @@ export default function LeaveRequests() {
       </Card>
 
       {showApply && <ApplyLeaveModal onClose={() => setShowApply(false)} />}
+      <Dialog open={!!decision} onClose={() => setDecision(null)} title={decision?.approve ? 'Approve leave request' : 'Reject leave request'} description={`${decision?.employeeName || 'This employee'} · add context for the request record.`}>
+        <form onSubmit={(event) => { event.preventDefault(); decide.mutate({ ...decision, note: decisionNote.trim() || undefined }); }}>
+          <FormField as="textarea" label={decision?.approve ? 'Approval note (optional)' : 'Rejection reason'} required={!decision?.approve} rows={4} value={decisionNote} onChange={setDecisionNote} placeholder={decision?.approve ? 'Add a note for the employee...' : 'Explain why this request cannot be approved...'} />
+          <div className="d-flex justify-content-end gap-2 mt-3"><Button type="button" variant="secondary" onClick={() => setDecision(null)}>Cancel</Button><Button type="submit" variant={decision?.approve ? 'primary' : 'danger'} loading={decide.isPending}>{decision?.approve ? 'Approve request' : 'Reject request'}</Button></div>
+        </form>
+      </Dialog>
     </div>
   );
 }

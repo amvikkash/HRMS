@@ -26,10 +26,11 @@ import { useBreadcrumbLabel } from '../../components/layout/BreadcrumbContext';
  */
 export default function SalaryDetails() {
   const { employeeId: routeEmployeeId } = useParams();
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermission, hasRole } = useAuth();
   const employeeId = routeEmployeeId || user?.employeeId;
   const canManage = hasPermission('SALARY_MANAGE');
   const canViewList = hasPermission('SALARY_VIEW');
+  const isEmployee = hasRole('EMPLOYEE');
   const [modalOpen, setModalOpen] = useState(false);
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -78,14 +79,14 @@ export default function SalaryDetails() {
         </Link>
       )}
 
-      <div className="hz-greeting">
+      <div className={`hz-greeting ${isEmployee ? 'hz-employee-pay-header' : ''}`}>
         <div className="position-relative d-flex flex-wrap align-items-center justify-content-between gap-3">
           <div className="d-flex align-items-center gap-3">
             <Avatar name={data.employeeName} src={data.profilePhotoUrl} size="xl" />
             <div>
-              <h1 style={{ fontSize: 'var(--hz-text-2xl)', fontWeight: 700, marginBottom: 4, color: '#fff' }}>{data.employeeName}</h1>
+              <h1 style={{ fontSize: 'var(--hz-text-2xl)', fontWeight: 700, marginBottom: 4, color: '#fff' }}>{isEmployee ? 'My pay' : data.employeeName}</h1>
               <p style={{ color: 'rgba(255,255,255,0.85)', marginBottom: 0, fontSize: 'var(--hz-text-sm)' }}>
-                {data.employeeCode} &middot; {data.designationTitle || '—'} &middot; {data.departmentName || '—'}
+                {isEmployee ? 'Salary details and payslips, securely in one place.' : `${data.employeeCode} · ${data.designationTitle || '—'} · ${data.departmentName || '—'}`}
               </p>
             </div>
           </div>
@@ -99,8 +100,8 @@ export default function SalaryDetails() {
 
       <div className="row g-3">
         <div className="col-12 col-lg-7">
-          <Card title="Current Compensation" subtitle={structure ? `Effective from ${new Date(structure.effectiveFrom).toLocaleDateString()}` : undefined}>
-            {!structure && <EmptyState icon={FileSpreadsheet} title="No salary structure defined" description="Define a structure to include this employee in payroll." />}
+          <Card title={isEmployee ? 'Salary details' : 'Current Compensation'} subtitle={structure ? `Effective from ${new Date(structure.effectiveFrom).toLocaleDateString()}` : undefined}>
+            {!structure && <EmptyState icon={FileSpreadsheet} title="No payslip available yet" description={isEmployee ? 'Your salary information will appear here once payroll has been configured.' : 'Define a structure to include this employee in payroll.'} />}
             {structure && (
               <div className="d-flex flex-column gap-3">
                 <div
@@ -125,7 +126,7 @@ export default function SalaryDetails() {
         </div>
 
         <div className="col-12 col-lg-5">
-          <Card title="Structure History" subtitle="Every revision, most recent first">
+          <Card title={isEmployee ? 'Compensation history' : 'Structure History'} subtitle="Most recent first">
             {(!data.structureHistory || data.structureHistory.length === 0) && <EmptyState icon={History} title="No history yet" />}
             {data.structureHistory?.length > 0 && (
               <div className="d-flex flex-column gap-2">
@@ -148,13 +149,13 @@ export default function SalaryDetails() {
         </div>
       </div>
 
-      <Card title="Payroll History" subtitle="Every payroll run this employee has appeared in">
+      <Card title={isEmployee ? 'Payslip history' : 'Payroll History'} subtitle={isEmployee ? 'Your processed payslips' : 'Every payroll run this employee has appeared in'}>
         {(!data.payrollHistory || data.payrollHistory.length === 0) && (
           <EmptyState icon={Receipt} title="No payroll history yet" description="This employee hasn't appeared in a processed payroll run yet." />
         )}
         {data.payrollHistory?.length > 0 && (
           <div className="table-responsive">
-            <table className="table align-middle mb-0" style={{ fontSize: 'var(--hz-text-sm)' }}>
+            <table className="table align-middle mb-0 hz-table" style={{ fontSize: 'var(--hz-text-sm)' }}>
               <thead>
                 <tr>
                   <th className="text-secondary-hz" style={{ fontSize: 12, textTransform: 'uppercase' }}>

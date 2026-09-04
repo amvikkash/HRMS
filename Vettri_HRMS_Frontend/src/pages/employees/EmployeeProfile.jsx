@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link, useSearchParams } from 'react-router-dom';
+import { useParams, Link, Navigate, useSearchParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { employeesApi } from '../../api/endpoints/employees';
 import { leaveRequestsApi } from '../../api/endpoints/leave';
-import { attendanceApi } from '../../api/endpoints/attendance';
+import { attendanceApi, workSessionApi } from '../../api/endpoints/attendance';
 import { documentsApi, DOCUMENT_TYPE_LABEL, MANDATORY_DOCUMENTS } from '../../api/endpoints/documents';
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, Briefcase, Users, ChevronDown, Fingerprint, Pencil, Check, X, CalendarDays, Clock, FileText, Plus, Trash2, AlertTriangle, Network, ClipboardList, PackageOpen, Search, Send, UserX, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, Briefcase, Users, ChevronDown, Fingerprint, Pencil, Check, X, CalendarDays, Clock, FileText, Plus, Trash2, AlertTriangle, Network, ClipboardList, Search, Send, UserX, CheckCircle2, PackageOpen } from 'lucide-react';
 import Card from '../../components/ui/Card';
-import Badge from '../../components/ui/Badge';
+import StatusBadge from '../../components/ui/StatusBadge';
 import Avatar from '../../components/ui/Avatar';
 import Button from '../../components/ui/Button';
 import Dialog from '../../components/ui/Dialog';
@@ -20,6 +20,9 @@ import { leaveStatusMeta } from '../leave/leaveStatusMeta';
 import { useBreadcrumbLabel } from '../../components/layout/BreadcrumbContext';
 import Tabs from '../../components/ui/Tabs';
 import { useAuth } from '../../hooks/useAuth';
+import ApplyLeaveModal from '../leave/ApplyLeaveModal';
+import { selfServiceApi } from '../../api/endpoints/selfService';
+import ErrorBanner from '../../components/ui/ErrorBanner';
 
 const TABS = [
   { key: 'overview', label: 'Profile', icon: ClipboardList },
@@ -74,6 +77,8 @@ export default function EmployeeProfile() {
     },
   });
 
+  if (isEmployee && id && String(id) !== String(user?.employeeId)) return <Navigate to="/my-profile" replace />;
+
   if (isLoading) {
     return (
       <Card>
@@ -90,8 +95,8 @@ export default function EmployeeProfile() {
 
   return (
     <div className="hz-profile d-flex flex-column gap-4">
-      <Link to="/employees" className="d-inline-flex align-items-center gap-1 text-decoration-none" style={{ color: 'var(--hz-text-secondary)', fontSize: 'var(--hz-text-sm)', width: 'fit-content' }}>
-        <ArrowLeft size={15} /> Back to Employees
+      <Link to={isEmployee ? '/dashboard' : '/employees'} className="d-inline-flex align-items-center gap-1 text-decoration-none" style={{ color: 'var(--hz-text-secondary)', fontSize: 'var(--hz-text-sm)', width: 'fit-content' }}>
+        <ArrowLeft size={15} /> {isEmployee ? 'Back to Dashboard' : 'Back to Employees'}
       </Link>
 
       <Card className="hz-profile__identity-card">
@@ -101,9 +106,9 @@ export default function EmployeeProfile() {
             <div className="hz-profile__identity-copy">
               <div className="d-flex align-items-center gap-2">
                 <h1 style={{ fontSize: 'var(--hz-text-xl)', fontWeight: 700, margin: 0 }}>{employee.fullName}</h1>
-                <Badge variant={meta.variant} dot>
+                <StatusBadge status={employee.status} variant={meta.variant} dot>
                   {meta.label}
-                </Badge>
+                </StatusBadge>
               </div>
               <p className="text-secondary-hz mb-1" style={{ fontSize: 'var(--hz-text-sm)' }}>
                 {employee.designationTitle || 'No designation set'} {employee.departmentName ? `· ${employee.departmentName}` : ''}
@@ -133,9 +138,9 @@ export default function EmployeeProfile() {
                       className="btn btn-light border-0 w-100 text-start px-2 py-2 d-flex align-items-center gap-2"
                       style={{ opacity: key === employee.status ? 0.5 : 1 }}
                     >
-                      <Badge variant={val.variant} dot>
+                      <StatusBadge status={key} variant={val.variant} dot>
                         {val.label}
-                      </Badge>
+                      </StatusBadge>
                     </button>
                     );
                   })}
@@ -160,12 +165,12 @@ export default function EmployeeProfile() {
 
       <Tabs items={availableTabs} value={tab} onChange={changeTab} />
 
-      {tab === 'overview' && <OverviewTab employee={employee} />}
+      {tab === 'overview' && <OverviewTab employee={employee} isEmployee={isEmployee} />}
       {tab === 'job' && <JobTab employee={employee} />}
       {tab === 'hierarchy' && <HierarchyTab employee={employee} />}
       {tab === 'attendance' && <AttendanceTab employee={employee} />}
       {tab === 'leave' && <LeaveTab employee={employee} />}
-      {tab === 'documents' && <DocumentsTab employee={employee} />}
+      {tab === 'documents' && <DocumentsTab employee={employee} isEmployee={isEmployee} />}
       {tab === 'assets' && <AssetsTab />}
     </div>
   );
@@ -189,10 +194,11 @@ function ProfileContact({ icon: Icon, label, value }) {
   );
 }
 
-function OverviewTab({ employee }) {
+function OverviewTab({ employee, isEmployee }) {
   const { id } = useParams();
   const queryClient = useQueryClient();
   const [editingBiometric, setEditingBiometric] = useState(false);
+  const [confirmDisable, setConfirmDisable] = useState(false);
   const [pinValue, setPinValue] = useState(employee.biometricDeviceUserId || '');
   const accountStatus = employee.accountStatus || (employee.linkedUserId ? 'ACTIVE' : 'INVITED');
   const sendInvitation = useMutation({
@@ -220,11 +226,20 @@ function OverviewTab({ employee }) {
             <div><InfoRow icon={Mail} label="Email" value={employee.email} /><InfoRow label="Employee ID" value={employee.employeeCode} /></div>
             <div className="d-flex align-items-center gap-2 flex-wrap">
               <Badge variant={accountStatus === 'ACTIVE' ? 'success' : accountStatus === 'DISABLED' ? 'danger' : 'warning'} dot>{accountStatus}</Badge>
-              {accountStatus !== 'ACTIVE' && accountStatus !== 'DISABLED' && <Button size="sm" icon={Send} loading={sendInvitation.isPending} onClick={() => sendInvitation.mutate()}>{sendInvitation.isPending ? 'Sending' : 'Resend Invitation'}</Button>}
-              {accountStatus === 'ACTIVE' && <Button size="sm" variant="danger" icon={UserX} loading={disableAccount.isPending} onClick={() => disableAccount.mutate()}>Disable Account</Button>}
+              {!isEmployee && accountStatus !== 'ACTIVE' && accountStatus !== 'DISABLED' && <Button size="sm" icon={Send} loading={sendInvitation.isPending} onClick={() => sendInvitation.mutate()}>{sendInvitation.isPending ? 'Sending' : 'Resend Invitation'}</Button>}
+              {!isEmployee && accountStatus === 'ACTIVE' && <Button size="sm" variant="danger" icon={UserX} loading={disableAccount.isPending} onClick={() => setConfirmDisable(true)}>Disable Account</Button>}
             </div>
           </div>
           {(sendInvitation.isError || disableAccount.isError) && <div className="mt-3 text-danger small">{sendInvitation.error?.response?.data?.message || disableAccount.error?.response?.data?.message || 'Account action failed.'}</div>}
+          <ConfirmDialog
+            open={confirmDisable}
+            onClose={() => setConfirmDisable(false)}
+            title="Disable this account?"
+            description={`Sign-in access for ${employee.fullName} will be disabled.`}
+            confirmLabel="Disable account"
+            loading={disableAccount.isPending}
+            onConfirm={() => disableAccount.mutate(undefined, { onSuccess: () => setConfirmDisable(false) })}
+          />
         </Card>
       </div>
       <div className="col-12 col-lg-6">
@@ -253,7 +268,7 @@ function OverviewTab({ employee }) {
           <InfoRow icon={Phone} label="Phone" value={employee.emergencyContactPhone} />
         </Card>
       </div>
-      <div className="col-12 col-lg-6">
+      {!isEmployee && <div className="col-12 col-lg-6">
         <Card title="Biometric Enrollment" subtitle="The PIN this employee is enrolled under on the fingerprint device">
           <div className="d-flex align-items-center gap-2 py-2">
             <Fingerprint size={15} style={{ color: 'var(--hz-text-muted)', flexShrink: 0 }} />
@@ -286,7 +301,7 @@ function OverviewTab({ employee }) {
             )}
           </div>
         </Card>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -323,14 +338,6 @@ function JobTab({ employee }) {
         </Card>
       </div>
     </div>
-  );
-}
-
-function AssetsTab() {
-  return (
-    <Card className="hz-profile-empty-card">
-      <EmptyState icon={PackageOpen} title="No assets are present yet" description="Asset assignments will appear here when an asset is assigned to this employee." />
-    </Card>
   );
 }
 
@@ -378,23 +385,50 @@ function HierarchyTab({ employee }) {
 }
 
 function AttendanceTab({ employee }) {
+  const queryClient = useQueryClient();
+  const [sessionError, setSessionError] = useState('');
   const { data: records, isLoading, isError, refetch } = useQuery({
     queryKey: ['attendance-employee', String(employee.id)],
     queryFn: () => attendanceApi.byEmployee(employee.id),
   });
 
+  const recordsList = Array.isArray(records) ? records : [];
+  const todayKey = new Date().toISOString().slice(0, 10);
+  const todayRecords = recordsList.filter((record) => record.punchTime?.slice(0, 10) === todayKey);
+  const checkIn = todayRecords.find((record) => record.punchType === 'IN');
+  const checkOut = todayRecords.find((record) => record.punchType === 'OUT');
+  const sessionMutation = useMutation({
+    mutationFn: () => (checkIn && !checkOut ? workSessionApi.stop() : workSessionApi.start('OFFICE')),
+    onSuccess: () => {
+      setSessionError('');
+      queryClient.invalidateQueries({ queryKey: ['attendance-employee', String(employee.id)] });
+    },
+    onError: (error) => setSessionError(error.response?.data?.message || 'Attendance action could not be completed.'),
+  });
+
   return (
-    <Card title="Punch History" bodyClassName="p-0">
+    <div className="d-flex flex-column gap-3">
+      <div className="hz-self-service-summary" aria-label="Today's attendance summary">
+        <div><span>Today&apos;s status</span><strong>{checkOut ? 'Complete' : checkIn ? 'Checked in' : 'Not recorded'}</strong></div>
+        <div><span>Check-in</span><strong>{checkIn ? new Date(checkIn.punchTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</strong></div>
+        <div><span>Check-out</span><strong>{checkOut ? new Date(checkOut.punchTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '—'}</strong></div>
+      </div>
+      <div className="hz-self-service-action">
+        <div><strong>{checkOut ? 'Your attendance is complete' : checkIn ? 'You are currently checked in' : 'Start your workday'}</strong><span>{checkOut ? 'Your work session has been recorded for today.' : 'Use the button to record your office work session.'}</span></div>
+        {!checkOut && <Button size="sm" onClick={() => sessionMutation.mutate()} loading={sessionMutation.isPending}>{checkIn ? 'Check out' : 'Check in'}</Button>}
+      </div>
+      {sessionError && <div className="hz-inline-error" role="alert">{sessionError}</div>}
+      <Card title="Attendance history" subtitle="Your recorded biometric punches" bodyClassName="p-0">
       {isLoading && (
         <div className="p-4">
           <SkeletonText lines={5} />
         </div>
       )}
       {isError && <ErrorState description="Couldn't load attendance records." onRetry={refetch} />}
-      {!isLoading && !isError && records?.length === 0 && (
+      {!isLoading && !isError && recordsList.length === 0 && (
         <EmptyState icon={Clock} title="No punches recorded" description="Attendance records from biometric devices will show up here." />
       )}
-      {!isLoading && !isError && records?.length > 0 && (
+      {!isLoading && !isError && recordsList.length > 0 && (
         <table className="table mb-0 align-middle hz-table" aria-label="Employee attendance history">
           <thead>
             <tr style={{ fontSize: 'var(--hz-text-xs)', color: 'var(--hz-text-muted)', textTransform: 'uppercase' }}>
@@ -406,7 +440,7 @@ function AttendanceTab({ employee }) {
             </tr>
           </thead>
           <tbody>
-            {records.map((r) => (
+            {recordsList.map((r) => (
               <tr key={r.id}>
                 <td className="ps-4" style={{ fontSize: 'var(--hz-text-sm)' }}>{new Date(r.punchTime).toLocaleDateString()}</td>
                 <td style={{ fontSize: 'var(--hz-text-sm)', color: 'var(--hz-text-secondary)' }}>{new Date(r.punchTime).toLocaleTimeString()}</td>
@@ -420,11 +454,35 @@ function AttendanceTab({ employee }) {
           </tbody>
         </table>
       )}
+      </Card>
+    </div>
+  );
+}
+
+function AssetsTab() {
+  const { data: assets, isLoading, isError, refetch } = useQuery({
+    queryKey: ['employee-assets'],
+    queryFn: selfServiceApi.assets,
+  });
+  const records = Array.isArray(assets) ? assets : [];
+
+  return (
+    <Card title="My assets" subtitle="Company equipment assigned to you">
+      {isLoading && <SkeletonText lines={4} />}
+      {isError && <ErrorState description="Couldn’t load your assigned assets." onRetry={refetch} />}
+      {!isLoading && !isError && records.length === 0 && <EmptyState icon={PackageOpen} title="No assets assigned" description="Company equipment will appear here when it is assigned to you." />}
+      {!isLoading && !isError && records.length > 0 && <div className="hz-self-service-list">
+        {records.map((asset) => <div className="hz-self-service-list__row" key={asset.id}>
+          <span className="hz-self-service-list__icon"><PackageOpen size={18} /></span>
+          <span><strong>{asset.assetType}</strong><small>{asset.assetTag || asset.description || 'Assigned company asset'}</small></span>
+          <Badge variant={asset.status === 'RETURNED' ? 'neutral' : 'success'}>{asset.status || 'ASSIGNED'}</Badge>
+        </div>)}
+      </div>}
     </Card>
   );
 }
 
-function DocumentsTab({ employee }) {
+function DocumentsTab({ employee, isEmployee }) {
   const queryClient = useQueryClient();
   const [showAdd, setShowAdd] = useState(false);
   const [documentSearch, setDocumentSearch] = useState('');
@@ -507,7 +565,7 @@ function DocumentsTab({ employee }) {
       )}
       {isError && <ErrorState description="Couldn't load documents." onRetry={refetch} />}
       {!isLoading && !isError && documents?.length === 0 && (
-        <EmptyState icon={FileText} title="No optional documents on file" description="Use Add Document to add the mandatory records or track visas, certifications, and contracts." />
+        <EmptyState icon={FileText} title="No documents on file yet" description={isEmployee ? 'Your documents will appear here once they are added to your employee record.' : 'Add mandatory records or track visas, certifications, and contracts.'} />
       )}
       {!isLoading && !isError && documents?.length > 0 && visibleDocuments.length === 0 && (
         <EmptyState icon={Search} title="No documents found" description={`Nothing matches "${documentSearch}".`} />
@@ -548,7 +606,7 @@ function DocumentsTab({ employee }) {
                     </span>
                   </td>
                   <td className="pe-4 text-end">
-                    <button
+                    {!isEmployee && <button
                       className="btn btn-sm btn-light border-0"
                       style={{ color: 'var(--hz-danger-600)' }}
                       onClick={() => remove.mutate(d.id)}
@@ -556,7 +614,7 @@ function DocumentsTab({ employee }) {
                       aria-label={`Delete ${DOCUMENT_TYPE_LABEL[d.documentType] || d.documentType} record`}
                     >
                       <Trash2 size={14} />
-                    </button>
+                    </button>}
                   </td>
                 </tr>
               );
@@ -598,9 +656,7 @@ function AddDocumentModal({ employeeId, onClose }) {
     <Dialog open onClose={onClose} title="Add Document" size="sm">
       <form onSubmit={handleSubmit}>
         {error && (
-          <div className="mb-3 px-3 py-2" style={{ background: 'var(--hz-danger-50)', color: 'var(--hz-danger-600)', borderRadius: 8, fontSize: 13 }}>
-            {error}
-          </div>
+          <ErrorBanner>{error}</ErrorBanner>
         )}
 
         <FormField as="select" label="Document Type" required value={form.documentType} onChange={(v) => set('documentType', v)}>
@@ -635,6 +691,7 @@ function AddDocumentModal({ employeeId, onClose }) {
 
 function LeaveTab({ employee }) {
   const year = new Date().getFullYear();
+  const [showApply, setShowApply] = useState(false);
   const { data: balances, isLoading: balancesLoading } = useQuery({
     queryKey: ['leave-balance', String(employee.id), year],
     queryFn: () => leaveRequestsApi.balance(employee.id, year),
@@ -647,7 +704,7 @@ function LeaveTab({ employee }) {
   return (
     <div className="row g-3">
       <div className="col-12 col-lg-5">
-        <Card title="Leave Balance" subtitle={`${year}`}>
+        <Card title="Leave balance" subtitle={`${year}`} actions={<Button size="sm" icon={Plus} onClick={() => setShowApply(true)}>Apply leave</Button>}>
           {balancesLoading && <SkeletonText lines={3} />}
           {!balancesLoading && balances?.length === 0 && <EmptyState title="No leave types configured" />}
           {!balancesLoading &&
@@ -701,6 +758,7 @@ function LeaveTab({ employee }) {
           )}
         </Card>
       </div>
+      {showApply && <ApplyLeaveModal defaultEmployeeId={employee.id} onClose={() => setShowApply(false)} />}
     </div>
   );
 }

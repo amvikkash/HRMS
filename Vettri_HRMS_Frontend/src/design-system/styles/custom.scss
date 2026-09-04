@@ -6,13 +6,13 @@
 // ==========================================================
 
 // ---- Color system ----
-$primary: #2563eb;
-$secondary: #64748b;
-$success: #159a72;
+$primary: #1d4ed8;
+$secondary: #526176;
+$success: #16a34a;
 $info: #0284c7;
 $warning: #d97706;
 $danger: #dc2626;
-$light: #f5f8fc;
+$light: #f4f7fb;
 $dark: #172033;
 
 // ---- Typography ----
@@ -30,7 +30,7 @@ $border-radius-xl: 1rem;
 $border-radius-pill: 50rem;
 
 // ---- Borders ----
-$border-color: #dfe5ed;
+$border-color: #e5eaf1;
 
 // ---- Shadows - soft and layered, never harsh ----
 $box-shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.03);
@@ -44,17 +44,17 @@ $btn-padding-x: 1rem;
 $btn-padding-y-sm: 0.3125rem;
 $btn-padding-x-sm: 0.75rem;
 $btn-border-radius: 0.5rem;
-$btn-focus-box-shadow: 0 0 0 3px rgba(8, 127, 232, 0.2);
+$btn-focus-box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 
 // ---- Forms ----
 $input-padding-y: 0.5rem;
 $input-padding-x: 0.75rem;
 $input-border-color: #cbd5e1;
-$input-focus-border-color: #087fe8;
-$input-focus-box-shadow: 0 0 0 3px rgba(8, 127, 232, 0.2);
+$input-focus-border-color: #2563eb;
+$input-focus-box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 
 // ---- Cards ----
-$card-border-color: #e2e8f0;
+$card-border-color: #e5eaf1;
 $card-border-radius: 0.5rem;
 $card-spacer-y: 1.25rem;
 $card-spacer-x: 1.25rem;
@@ -62,7 +62,7 @@ $card-spacer-x: 1.25rem;
 // ---- Tables ----
 $table-cell-padding-y: 0.75rem;
 $table-cell-padding-x: 1rem;
-$table-border-color: #e2e8f0;
+$table-border-color: #e5eaf1;
 
 // ---- Spacer scale (4px increments, matches tokens.css) ----
 $spacer: 1rem;
@@ -103,7 +103,7 @@ $spacers: (
 .btn-primary:focus {
   filter: brightness(1.06);
   transform: translateY(-1px);
-  box-shadow: 0 14px 30px -8px rgba(8, 113, 208, 0.38);
+  box-shadow: 0 14px 30px -8px rgba(30, 64, 175, 0.38);
 }
 .btn-primary:active {
   transform: translateY(0);
@@ -127,7 +127,7 @@ $spacers: (
 }
 
 .form-control::placeholder {
-  color: #8a96a8;
+  color: var(--hz-text-muted);
 }
 
 .form-control,
@@ -136,7 +136,7 @@ $spacers: (
 }
 .form-control:focus,
 .form-select:focus {
-  background: #fff;
+  background: var(--hz-bg-surface);
 }
 
 .form-control,

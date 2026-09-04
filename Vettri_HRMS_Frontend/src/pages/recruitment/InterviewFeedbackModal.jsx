@@ -5,6 +5,7 @@ import { interviewsApi } from '../../api/endpoints/recruitment';
 import Button from '../../components/ui/Button';
 import Dialog from '../../components/ui/Dialog';
 import FormField from '../../components/ui/FormField';
+import ErrorBanner from '../../components/ui/ErrorBanner';
 
 export default function InterviewFeedbackModal({ interview, candidateId, onClose }) {
   const queryClient = useQueryClient();
@@ -35,9 +36,7 @@ export default function InterviewFeedbackModal({ interview, candidateId, onClose
     <Dialog open onClose={onClose} title="Interview Feedback" size="md">
       <form onSubmit={handleSubmit}>
         {error && (
-          <div className="mb-3 px-3 py-2" style={{ background: 'var(--hz-danger-50)', color: 'var(--hz-danger-600)', borderRadius: 8, fontSize: 13 }}>
-            {error}
-          </div>
+          <ErrorBanner>{error}</ErrorBanner>
         )}
 
         <div className="mb-3">

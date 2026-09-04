@@ -21,7 +21,7 @@ import {
 } from '../../api/endpoints/monitoring';
 import { formatDateTimeIST, timeAgoIST, formatDurationShort } from '../../utils/formatDateTime';
 import Card from '../../components/ui/Card';
-import Badge from '../../components/ui/Badge';
+import StatusBadge from '../../components/ui/StatusBadge';
 import Table from '../../components/ui/Table';
 import ErrorState from '../../components/ui/ErrorState';
 import { SkeletonText } from '../../components/ui/Skeleton';
@@ -109,9 +109,9 @@ export default function DeviceDetails() {
               <div>
                 <h1 style={{ fontSize: 'var(--hz-text-xl)', fontWeight: 700, marginBottom: 2 }}>{getDeviceName(device)}</h1>
                 <div className="d-flex align-items-center gap-2">
-                  <Badge variant={isDeviceOnline(device) ? 'success' : 'neutral'} dot>
+                  <StatusBadge status={isDeviceOnline(device) ? 'ACTIVE' : 'INACTIVE'} variant={isDeviceOnline(device) ? 'success' : 'neutral'} dot>
                     {isDeviceOnline(device) ? 'Online' : 'Offline'}
-                  </Badge>
+                  </StatusBadge>
                   <span style={{ fontSize: 12, color: 'var(--hz-text-muted)' }}>
                     Last heartbeat {timeAgoIST(getDeviceLastSeen(device))}
                   </span>

@@ -117,7 +117,7 @@ export default function ActivateAccount() {
 
       <form onSubmit={handleSubmit}>
         <div style={{ marginBottom: 16 }}>
-          <label className="form-label" style={{ fontSize: 'var(--hz-text-sm)', fontWeight: 600, marginBottom: 8, display: 'block' }}>
+          <label className="hz-form-label" style={{ fontSize: 'var(--hz-text-sm)', fontWeight: 600, marginBottom: 8, display: 'block' }}>
             New Password
           </label>
           <input
@@ -141,7 +141,7 @@ export default function ActivateAccount() {
         </div>
 
         <div style={{ marginBottom: 16 }}>
-          <label className="form-label" style={{ fontSize: 'var(--hz-text-sm)', fontWeight: 600, marginBottom: 8, display: 'block' }}>
+          <label className="hz-form-label" style={{ fontSize: 'var(--hz-text-sm)', fontWeight: 600, marginBottom: 8, display: 'block' }}>
             Confirm Password
           </label>
           <input

@@ -1,3 +1,3 @@
-export default function Badge({ variant = 'neutral', dot = false, children }) {
-  return <span className={`hz-badge hz-badge--${variant} ${dot ? 'hz-badge--dot' : ''}`}>{children}</span>;
+export default function Badge({ variant = 'neutral', dot = false, children, className = '', ...rest }) {
+  return <span className={`hz-badge hz-badge--${variant} ${dot ? 'hz-badge--dot' : ''} ${className}`.trim()} {...rest}>{children}</span>;
 }

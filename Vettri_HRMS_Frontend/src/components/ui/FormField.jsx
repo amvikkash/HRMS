@@ -39,14 +39,15 @@ export default function FormField({
   const describedBy = error ? errorId : hint ? hintId : undefined;
   const handleChange = (e) => onChange?.(e.target.value);
 
+  const controlClassName = `form-${as === 'select' ? 'select' : 'control'}${error ? ' is-invalid' : ''}`;
   const control =
     as === 'select' ? (
-      <select id={controlId} className="form-select" value={value} onChange={handleChange} required={required} aria-invalid={Boolean(error)} aria-describedby={describedBy} {...rest}>
+      <select id={controlId} className={controlClassName} value={value} onChange={handleChange} required={required} aria-invalid={Boolean(error)} aria-describedby={describedBy} {...rest}>
         {children}
       </select>
     ) : as === 'textarea' ? (
       <textarea
-        className="form-control"
+        className={controlClassName}
         id={controlId}
         value={value}
         onChange={handleChange}
@@ -60,7 +61,7 @@ export default function FormField({
     ) : (
       <input
         type={type}
-        className="form-control"
+        className={controlClassName}
         id={controlId}
         value={value}
         onChange={handleChange}

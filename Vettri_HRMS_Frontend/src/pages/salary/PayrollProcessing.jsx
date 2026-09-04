@@ -4,6 +4,7 @@ import { PlusCircle, PlayCircle, Wallet, PauseCircle, Play, XCircle, Receipt, Do
 import { payrollApi } from '../../api/endpoints/salary';
 import Card from '../../components/ui/Card';
 import Button from '../../components/ui/Button';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
 import { SkeletonText } from '../../components/ui/Skeleton';
@@ -13,12 +14,14 @@ import { exportToCsv } from '../../utils/exportToCsv';
 import PayrollStatusBadge from './components/PayrollStatusBadge';
 import NewPayrollRunModal from './components/NewPayrollRunModal';
 import PageHeader from '../../components/ui/PageHeader';
+import StatCard from '../../components/ui/StatCard';
 
 export default function PayrollProcessing() {
   const queryClient = useQueryClient();
   const toast = useToast();
   const [selectedRunId, setSelectedRunId] = useState(null);
   const [showNewRun, setShowNewRun] = useState(false);
+  const [confirmAction, setConfirmAction] = useState(null);
 
   const { data: runs = [], isLoading: loadingRuns } = useQuery({ queryKey: ['payroll-runs'], queryFn: payrollApi.listRuns });
 
@@ -81,6 +84,20 @@ export default function PayrollProcessing() {
     });
     return byStatus;
   }, [items]);
+
+  const preflight = {
+    hasEmployees: items.length > 0,
+    onHold: counts.ON_HOLD,
+    pending: counts.PENDING,
+  };
+
+  function requestConfirmation(action) {
+    if (action === 'process' && (!preflight.hasEmployees || preflight.onHold > 0)) {
+      toast.error('Resolve payroll holds and ensure employees are included before processing.');
+      return;
+    }
+    setConfirmAction(action);
+  }
 
   function handleExport() {
     exportToCsv(
@@ -165,16 +182,16 @@ export default function PayrollProcessing() {
                     </button>
                     {run?.status === 'DRAFT' && (
                       <>
-                        <Button variant="secondary" icon={XCircle} onClick={() => cancelMutation.mutate()} loading={cancelMutation.isPending}>
+                        <Button variant="secondary" icon={XCircle} onClick={() => requestConfirmation('cancel')} loading={cancelMutation.isPending}>
                           Cancel Run
                         </Button>
-                        <Button icon={PlayCircle} onClick={() => processMutation.mutate()} loading={processMutation.isPending}>
+                        <Button icon={PlayCircle} onClick={() => requestConfirmation('process')} loading={processMutation.isPending}>
                           Process Payroll
                         </Button>
                       </>
                     )}
                     {run?.status === 'PROCESSED' && (
-                      <Button icon={Wallet} onClick={() => markPaidMutation.mutate()} loading={markPaidMutation.isPending}>
+                      <Button icon={Wallet} onClick={() => requestConfirmation('paid')} loading={markPaidMutation.isPending}>
                         Mark as Paid
                       </Button>
                     )}
@@ -183,12 +200,20 @@ export default function PayrollProcessing() {
 
                 {run && (
                   <div className="row g-3 mt-1">
-                    <TotalStat label="Total Gross" value={run.totalGross} />
-                    <TotalStat label="Total Deductions" value={run.totalDeductions} />
-                    <TotalStat label="Total Net Payout" value={run.totalNet} emphasize />
+                    <div className="col-6 col-md-4"><StatCard label="Total gross" value={formatCurrency(run.totalGross)} icon={Wallet} /></div>
+                    <div className="col-6 col-md-4"><StatCard label="Total deductions" value={formatCurrency(run.totalDeductions)} icon={Wallet} accent="warning" /></div>
+                    <div className="col-6 col-md-4"><StatCard label="Total net payout" value={formatCurrency(run.totalNet)} icon={Wallet} accent="success" /></div>
                   </div>
                 )}
               </Card>
+
+              {run?.status === 'DRAFT' && <Card className="hz-payroll-preflight" title="Preflight checks" subtitle="Review before processing this payroll run">
+                <div className="hz-payroll-preflight__checks">
+                  <span className={preflight.hasEmployees ? 'is-ready' : 'is-blocked'}>{preflight.hasEmployees ? 'Ready' : 'Blocked'} · Employees included</span>
+                  <span className={preflight.onHold === 0 ? 'is-ready' : 'is-blocked'}>{preflight.onHold === 0 ? 'Ready' : `${preflight.onHold} blocked`} · Holds resolved</span>
+                  <span className={preflight.pending >= 0 ? 'is-ready' : 'is-blocked'}>{preflight.pending} pending items reviewed</span>
+                </div>
+              </Card>}
 
               <Card bodyClassName="p-0" title="Employees in this Run">
                 {loadingDetail && (
@@ -281,17 +306,23 @@ export default function PayrollProcessing() {
           }}
         />
       )}
+      <ConfirmDialog
+        open={!!confirmAction}
+        onClose={() => setConfirmAction(null)}
+        onConfirm={() => {
+          const action = confirmAction;
+          setConfirmAction(null);
+          if (action === 'process') processMutation.mutate();
+          if (action === 'paid') markPaidMutation.mutate();
+          if (action === 'cancel') cancelMutation.mutate();
+        }}
+        title={confirmAction === 'process' ? 'Process this payroll run?' : confirmAction === 'paid' ? 'Mark payroll as paid?' : 'Cancel this payroll run?'}
+        description={confirmAction === 'process' ? 'This will finalize the reviewed payroll items.' : confirmAction === 'paid' ? 'This will record payment for every processed item in the run.' : 'This will cancel the draft run and remove it from active payroll work.'}
+        confirmLabel={confirmAction === 'process' ? 'Process payroll' : confirmAction === 'paid' ? 'Mark as paid' : 'Cancel run'}
+        variant={confirmAction === 'cancel' ? 'danger' : 'primary'}
+        loading={processMutation.isPending || markPaidMutation.isPending || cancelMutation.isPending}
+      />
     </div>
   );
 }
 
-function TotalStat({ label, value, emphasize }) {
-  return (
-    <div className="col-6 col-md-4">
-      <p style={{ fontSize: 11, color: 'var(--hz-text-muted)', fontWeight: 600, marginBottom: 2, textTransform: 'uppercase', letterSpacing: '0.04em' }}>{label}</p>
-      <p style={{ fontSize: emphasize ? 'var(--hz-text-xl)' : 'var(--hz-text-base)', fontWeight: 700, margin: 0, color: emphasize ? 'var(--hz-primary-700)' : 'var(--hz-text-primary)' }}>
-        {formatCurrency(value)}
-      </p>
-    </div>
-  );
-}

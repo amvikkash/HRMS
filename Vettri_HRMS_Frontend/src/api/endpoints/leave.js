@@ -15,6 +15,7 @@ export const leaveRequestsApi = {
 export const leaveTypesApi = {
   list: () => axiosClient.get('/api/leave-types').then((res) => res.data),
   create: (payload) => axiosClient.post('/api/leave-types', payload).then((res) => res.data),
+  update: (id, payload) => axiosClient.put(`/api/leave-types/${id}`, payload).then((res) => res.data),
 };
 
 export const holidaysApi = {

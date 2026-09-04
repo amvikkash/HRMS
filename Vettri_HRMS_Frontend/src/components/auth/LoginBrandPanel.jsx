@@ -12,8 +12,8 @@ export default function LoginBrandPanel() {
       className="login-brand-panel d-none d-lg-flex flex-column justify-content-between p-5"
       style={{
         width: '48%',
-        background: 'linear-gradient(135deg, #0b1f3a 0%, #0f3d5c 50%, #0a2d4f 100%)',
-        color: '#ffffff',
+        background: 'linear-gradient(135deg, var(--hz-primary-900) 0%, var(--hz-primary-800) 50%, var(--hz-primary-700) 100%)',
+        color: 'var(--hz-text-on-primary)',
         overflow: 'hidden',
         position: 'relative',
       }}
@@ -23,7 +23,7 @@ export default function LoginBrandPanel() {
         <svg width="100%" height="100%" viewBox="0 0 100 100" preserveAspectRatio="xMidYMid slice">
           <defs>
             <pattern id="dots" x="10" y="10" width="20" height="20" patternUnits="userSpaceOnUse">
-              <circle cx="10" cy="10" r="1.5" fill="#ffffff" />
+              <circle cx="10" cy="10" r="1.5" fill="var(--hz-text-on-primary)" />
             </pattern>
           </defs>
           <rect width="100" height="100" fill="url(#dots)" />
@@ -100,8 +100,8 @@ export default function LoginBrandPanel() {
         }
 
         @keyframes gradientShift {
-          0%, 100% { background: linear-gradient(135deg, #0b1f3a 0%, #0f3d5c 50%, #0a2d4f 100%); }
-          50% { background: linear-gradient(135deg, #0a2d4f 0%, #0b1f3a 50%, #0f3d5c 100%); }
+          0%, 100% { background: linear-gradient(135deg, var(--hz-primary-900) 0%, var(--hz-primary-800) 50%, var(--hz-primary-700) 100%); }
+          50% { background: linear-gradient(135deg, var(--hz-primary-700) 0%, var(--hz-primary-900) 50%, var(--hz-primary-800) 100%); }
         }
       `}</style>
     </div>
@@ -112,7 +112,7 @@ function BrandFeature({ icon: Icon, title, description }) {
   return (
     <div className="d-flex gap-3">
       <div style={{ flexShrink: 0, marginTop: 2 }}>
-        <Icon size={20} style={{ color: '#FFB000' }} />
+        <Icon size={20} style={{ color: 'var(--hz-accent-500)' }} />
       </div>
       <div>
         <div
@@ -120,7 +120,7 @@ function BrandFeature({ icon: Icon, title, description }) {
             fontSize: 'var(--hz-text-sm)',
             fontWeight: 600,
             marginBottom: 4,
-            color: '#ffffff',
+            color: 'var(--hz-text-on-primary)',
           }}
         >
           {title}
@@ -130,7 +130,7 @@ function BrandFeature({ icon: Icon, title, description }) {
             fontSize: 'var(--hz-text-sm)',
             opacity: 0.75,
             lineHeight: 1.5,
-            color: '#ffffff',
+            color: 'var(--hz-text-on-primary)',
           }}
         >
           {description}

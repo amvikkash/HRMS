@@ -20,11 +20,13 @@ export default function Button({
   return (
     <button
       className={`btn ${VARIANT_CLASS[variant] || VARIANT_CLASS.primary} ${sizeClass} d-inline-flex align-items-center gap-2 ${className}`}
+      type="button"
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
       {...rest}
     >
-      {loading && <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />}
-      {!loading && Icon && <Icon size={16} />}
+      {loading && <span className="hz-button__spinner spinner-border spinner-border-sm" role="status" aria-hidden="true" />}
+      {!loading && Icon && <Icon size={16} aria-hidden="true" />}
       {children}
     </button>
   );

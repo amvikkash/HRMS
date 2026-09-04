@@ -30,8 +30,8 @@ export default function Logo({
       <svg width={size} height={size} viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
         <defs>
           <linearGradient id={gradientId} x1="2" y1="2" x2="38" y2="38" gradientUnits="userSpaceOnUse">
-            <stop offset="0%" stopColor="#087FE8" />
-            <stop offset="100%" stopColor="#0B3B91" />
+            <stop offset="0%" stopColor="var(--hz-primary-500)" />
+            <stop offset="100%" stopColor="var(--hz-primary-700)" />
           </linearGradient>
         </defs>
 

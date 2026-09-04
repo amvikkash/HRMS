@@ -5,6 +5,7 @@ import { employeesApi } from '../../api/endpoints/employees';
 import Button from '../../components/ui/Button';
 import Dialog from '../../components/ui/Dialog';
 import FormField from '../../components/ui/FormField';
+import ErrorBanner from '../../components/ui/ErrorBanner';
 
 export default function ApplyLeaveModal({ onClose, defaultEmployeeId }) {
   const queryClient = useQueryClient();
@@ -17,7 +18,7 @@ export default function ApplyLeaveModal({ onClose, defaultEmployeeId }) {
   });
   const [error, setError] = useState(null);
 
-  const { data: employees = [] } = useQuery({ queryKey: ['employees'], queryFn: () => employeesApi.list() });
+  const { data: employees = [] } = useQuery({ queryKey: ['employees'], queryFn: () => employeesApi.list(), enabled: !defaultEmployeeId });
   const { data: leaveTypes = [] } = useQuery({ queryKey: ['leave-types'], queryFn: leaveTypesApi.list });
 
   const year = form.startDate ? new Date(form.startDate).getFullYear() : new Date().getFullYear();
@@ -53,22 +54,16 @@ export default function ApplyLeaveModal({ onClose, defaultEmployeeId }) {
   }
 
   return (
-    <Dialog open onClose={onClose} title="Apply Leave" size="md">
+    <Dialog open onClose={onClose} title="Apply Leave" size="md" hasUnsavedChanges={Object.values(form).some(Boolean) && !apply.isSuccess}>
       <form onSubmit={handleSubmit}>
         {error && (
-          <div className="mb-3 px-3 py-2" style={{ background: 'var(--hz-danger-50)', color: 'var(--hz-danger-600)', borderRadius: 8, fontSize: 13 }}>
-            {error}
-          </div>
+          <ErrorBanner>{error}</ErrorBanner>
         )}
 
-        <FormField as="select" label="Employee" required value={form.employeeId} onChange={(v) => set('employeeId', v)}>
+        {!defaultEmployeeId && <FormField as="select" label="Employee" required value={form.employeeId} onChange={(v) => set('employeeId', v)}>
           <option value="">Select employee</option>
-          {employees.map((e) => (
-            <option key={e.id} value={e.id}>
-              {e.fullName} ({e.employeeCode})
-            </option>
-          ))}
-        </FormField>
+          {employees.map((e) => <option key={e.id} value={e.id}>{e.fullName} ({e.employeeCode})</option>)}
+        </FormField>}
 
         <FormField as="select" label="Leave Type" required value={form.leaveTypeId} onChange={(v) => set('leaveTypeId', v)} hint={selectedBalance ? `${selectedBalance.remainingDays} of ${selectedBalance.allocatedDays + selectedBalance.carriedForwardDays} day(s) remaining in ${year}` : undefined}>
           <option value="">Select leave type</option>

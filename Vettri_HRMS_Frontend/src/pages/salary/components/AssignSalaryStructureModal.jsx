@@ -4,6 +4,7 @@ import { salaryStructuresApi } from '../../../api/endpoints/salary';
 import Button from '../../../components/ui/Button';
 import Dialog from '../../../components/ui/Dialog';
 import FormField from '../../../components/ui/FormField';
+import ErrorBanner from '../../../components/ui/ErrorBanner';
 import { useToast } from '../../../components/ui/Toast';
 import { formatCurrency } from '../../../utils/formatCurrency';
 import SalaryComponentsFields, { EMPTY_COMPONENTS, computeTotals } from './SalaryComponentsFields';
@@ -89,9 +90,7 @@ export default function AssignSalaryStructureModal({ employee, onClose }) {
     >
       <form onSubmit={handleSubmit}>
         {error && (
-          <div className="mb-3 px-3 py-2" style={{ background: 'var(--hz-danger-50)', color: 'var(--hz-danger-600)', borderRadius: 8, fontSize: 13 }}>
-            {error}
-          </div>
+          <ErrorBanner>{error}</ErrorBanner>
         )}
 
         {loadingCurrent ? (

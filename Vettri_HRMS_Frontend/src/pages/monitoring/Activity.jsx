@@ -17,6 +17,7 @@ import { formatDateTimeIST, formatDurationShort, toISTDateInputValue, istDateInp
 import Card from '../../components/ui/Card';
 import Table from '../../components/ui/Table';
 import PageHeader from '../../components/ui/PageHeader';
+import FilterBar from '../../components/ui/FilterBar';
 
 const PAGE_SIZE = 25;
 
@@ -87,12 +88,13 @@ export default function Activity() {
     <div className="d-flex flex-column gap-4">
       <PageHeader eyebrow="Monitoring" title="Activity" description="Application and window activity sessions reported by the monitoring agents" />
 
-      <div className="d-flex align-items-center gap-2 flex-wrap">
+      <FilterBar>
         <div className="position-relative" style={{ maxWidth: 320, width: '100%' }}>
           <Search size={16} className="position-absolute" style={{ left: 12, top: 10, color: 'var(--hz-text-muted)' }} />
           <input
             type="search"
             placeholder="Search employee, app, window, device…"
+            aria-label="Search monitoring activity"
             className="form-control ps-5"
             value={search}
             onChange={(e) => updateFilter(setSearch)(e.target.value)}
@@ -113,7 +115,7 @@ export default function Activity() {
           <span style={{ color: 'var(--hz-text-muted)', fontSize: 'var(--hz-text-sm)' }}>to</span>
           <input type="date" className="form-control" style={{ maxWidth: 160 }} value={dateTo} min={dateFrom} onChange={(e) => updateFilter(setDateTo)(e.target.value)} />
         </div>
-      </div>
+      </FilterBar>
 
       <Card bodyClassName="p-0">
         <Table

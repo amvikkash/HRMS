@@ -10,6 +10,7 @@ import {
   FileBarChart,
   FileText,
   ShieldCheck,
+  Settings2,
   ScrollText,
   Building2,
   Wallet,
@@ -66,15 +67,14 @@ export const NAV_SECTIONS = [
       { to: '/my-profile?tab=job', icon: Briefcase, label: 'My Job' },
       { to: '/my-profile?tab=attendance', icon: Clock, label: 'Attendance' },
       { to: '/my-profile?tab=leave', icon: CalendarDays, label: 'Leave' },
-      { to: '/my-payslip', icon: Wallet, label: 'My Salary / Payroll' },
       { to: '/my-profile?tab=documents', icon: FileText, label: 'My Documents' },
       { to: '/my-profile?tab=assets', icon: PackageOpen, label: 'My Assets' },
-      { to: '/my-interviews', icon: CalendarClock, label: 'My Interviews', permission: 'INTERVIEW_DECISION' },
+      { to: '/my-interviews', icon: CalendarClock, label: 'My Interviews' },
     ],
   },
   {
     id: 'employee-inbox',
-    label: 'Inbox',
+    label: 'Notifications',
     description: 'Updates and actions related to your account',
     role: 'EMPLOYEE',
     collapsible: true,
@@ -119,7 +119,7 @@ export const NAV_SECTIONS = [
     role: 'EMPLOYEE',
     collapsible: true,
     badge: null,
-    items: [{ to: '/support', icon: LifeBuoy, label: 'Support' }],
+    items: [{ to: '/support', icon: LifeBuoy, label: 'Support' }, { to: '/settings/preferences', icon: Settings2, label: 'Preferences' }],
   },
   {
     id: 'root',
@@ -227,7 +227,7 @@ export const NAV_SECTIONS = [
 /** Flat list of every navigable page, each tagged with its section label -
  *  what the search index and favorites picker actually iterate over. */
 export const NAV_INDEX = NAV_SECTIONS.flatMap((section) =>
-  section.items.map((item) => ({ ...item, section: section.label, permission: item.permission || section.permission }))
+  section.items.map((item) => ({ ...item, section: section.label, role: item.role || section.role, permission: item.permission || section.permission }))
 );
 
 export function findNavItemByPath(path) {

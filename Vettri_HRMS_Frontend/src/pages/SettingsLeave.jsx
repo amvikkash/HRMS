@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Zap } from 'lucide-react';
 import { leaveTypesApi, holidaysApi } from '../api/endpoints/leave';
 import Card from '../components/ui/Card';
 import Badge from '../components/ui/Badge';
@@ -33,16 +33,20 @@ export default function SettingsLeave() {
 function LeaveTypesPanel() {
   const queryClient = useQueryClient();
   const [showForm, setShowForm] = useState(false);
-  const [form, setForm] = useState({ name: '', code: '', defaultDaysPerYear: '', carryForward: false });
+  const [form, setForm] = useState({ name: '', code: '', defaultDaysPerYear: '', carryForward: false, autoApprove: false });
 
   const { data: types, isLoading } = useQuery({ queryKey: ['leave-types'], queryFn: leaveTypesApi.list });
   const create = useMutation({
     mutationFn: leaveTypesApi.create,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['leave-types'] });
-      setForm({ name: '', code: '', defaultDaysPerYear: '', carryForward: false });
+      setForm({ name: '', code: '', defaultDaysPerYear: '', carryForward: false, autoApprove: false });
       setShowForm(false);
     },
+  });
+  const update = useMutation({
+    mutationFn: ({ id, payload }) => leaveTypesApi.update(id, payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['leave-types'] }),
   });
 
   return (
@@ -91,6 +95,10 @@ function LeaveTypesPanel() {
               Carry forward
             </label>
           </div>
+          <div className="col-3 d-flex align-items-center gap-2 pb-2">
+            <input type="checkbox" className="form-check-input" id="autoApprove" checked={form.autoApprove} onChange={(e) => setForm({ ...form, autoApprove: e.target.checked })} />
+            <label htmlFor="autoApprove" style={{ fontSize: 'var(--hz-text-sm)' }}>Auto-approve</label>
+          </div>
           <div className="col-2">
             <Button type="submit" size="sm" loading={create.isPending} className="w-100 justify-content-center">
               Add
@@ -111,6 +119,25 @@ function LeaveTypesPanel() {
             <div className="d-flex align-items-center gap-2">
               <span style={{ fontSize: 'var(--hz-text-sm)', color: 'var(--hz-text-secondary)' }}>{t.defaultDaysPerYear} days/year</span>
               {t.carryForward && <Badge variant="info">Carries forward</Badge>}
+              <button
+                type="button"
+                className={`btn btn-sm d-inline-flex align-items-center gap-1 ${t.autoApprove ? 'btn-primary' : 'btn-outline-secondary'}`}
+                onClick={() => update.mutate({
+                  id: t.id,
+                  payload: {
+                    name: t.name,
+                    code: t.code,
+                    defaultDaysPerYear: t.defaultDaysPerYear,
+                    carryForward: t.carryForward,
+                    autoApprove: !t.autoApprove,
+                  },
+                })}
+                disabled={update.isPending && update.variables?.id === t.id}
+                aria-pressed={Boolean(t.autoApprove)}
+                title={t.autoApprove ? 'Disable automatic approval' : 'Enable automatic approval'}
+              >
+                <Zap size={13} /> {t.autoApprove ? 'Auto-approve' : 'Manual approval'}
+              </button>
             </div>
           </div>
         ))}

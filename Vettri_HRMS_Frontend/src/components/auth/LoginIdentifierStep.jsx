@@ -58,7 +58,7 @@ export default function LoginIdentifierStep({
       >
         <div className="mb-4">
           <label
-            className="form-label"
+            className="hz-form-label"
             style={{
               fontSize: 'var(--hz-text-sm)',
               fontWeight: 600,
@@ -97,7 +97,8 @@ export default function LoginIdentifierStep({
                 boxShadow: isFocused ? 'var(--hz-shadow-focus)' : 'none',
                 transition: 'all var(--hz-transition-base)',
                 padding: '0 16px',
-                border: '1px solid',
+                borderWidth: '1px',
+                borderStyle: 'solid',
                 boxSizing: 'border-box',
               }}
             />

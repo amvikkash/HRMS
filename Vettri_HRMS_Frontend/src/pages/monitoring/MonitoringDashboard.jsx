@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Monitor, Wifi, WifiOff, Activity, AppWindow, Clock, CircleDot } from 'lucide-react';
+import { Monitor, Wifi, WifiOff, Activity, AppWindow, Clock, CircleDot, ShieldCheck } from 'lucide-react';
 import {
   monitoringApi,
   isDeviceOnline,
@@ -84,6 +84,11 @@ export default function MonitoringDashboard() {
   return (
     <div className="d-flex flex-column gap-4">
       <PageHeader eyebrow="Monitoring / Live" title="Workforce pulse" description="Current employee status from agent heartbeats and foreground activity" actions={<span className="text-secondary-hz" style={{ fontSize: 'var(--hz-text-sm)' }}>Updated {devicesUpdatedAt ? timeAgoIST(devicesUpdatedAt) : '—'}</span>} />
+
+      <div className="hz-privacy-notice" role="note">
+        <ShieldCheck size={18} aria-hidden="true" />
+        <div><strong>Monitoring visibility</strong><span>Activity shown here comes from enrolled devices and is visible only to users with monitoring access. Review your organization&apos;s monitoring and retention policy before sharing reports.</span></div>
+      </div>
 
       {devicesError && <ErrorState description="Couldn't load monitoring devices." onRetry={refetchDevices} />}
 

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Bell, ChevronDown, LogOut, UserCircle, Clock3, Menu, Building2, Command, ShieldAlert, Zap, Trash2 } from 'lucide-react';
+import { Search, Bell, ChevronDown, LogOut, UserCircle, Clock3, Menu, Building2, Command, ShieldAlert, Zap, Trash2, Sun, Moon } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { employeesApi } from '../../api/endpoints/employees';
 import { adminApi } from '../../api/endpoints/admin';
@@ -9,6 +9,8 @@ import Avatar from '../ui/Avatar';
 import Logo from '../brand/Logo';
 import { NAV_INDEX, NAV_SECTIONS } from './navConfig';
 import { useNavMemory } from './NavMemoryContext';
+import { selfServiceApi } from '../../api/endpoints/selfService';
+import { useTheme } from '../../contexts/ThemeContext';
 
 // Search history management
 const MAX_SEARCH_HISTORY = 10;
@@ -36,6 +38,7 @@ function clearSearchHistory() {
 
 export default function Topbar({ onOpenMobileNav }) {
   const { user, logout, hasPermission, hasRole, selectedCompanyId, setSelectedCompanyId } = useAuth();
+  const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -47,6 +50,9 @@ export default function Topbar({ onOpenMobileNav }) {
   const [searchHistory, setSearchHistory] = useState([]);
   const searchBoxRef = useRef(null);
   const { recentPaths } = useNavMemory();
+  const isEmployee = hasRole('EMPLOYEE');
+  const { data: notifications = [] } = useQuery({ queryKey: ['notifications'], queryFn: selfServiceApi.notifications, enabled: isEmployee });
+  const unreadNotifications = notifications.filter((notification) => !(notification.read_at || notification.readAt)).length;
   const { data: companies = [], isLoading: companiesLoading } = useQuery({
     queryKey: ['admin-companies-selector'],
     queryFn: adminApi.companies,
@@ -58,9 +64,10 @@ export default function Topbar({ onOpenMobileNav }) {
     setSearchHistory(getSearchHistory());
   }, []);
 
+  const canSearchPeople = hasPermission('EMPLOYEE_VIEW');
   const searchableNavItems = useMemo(
-    () => NAV_INDEX.filter((item) => !item.permission || hasPermission(item.permission)),
-    [hasPermission]
+    () => NAV_INDEX.filter((item) => (!item.permission || hasPermission(item.permission)) && (!item.role || hasRole(item.role))),
+    [hasPermission, hasRole]
   );
 
   /**
@@ -124,7 +131,7 @@ export default function Topbar({ onOpenMobileNav }) {
   const { data: employeeResults, isFetching: employeesLoading } = useQuery({
     queryKey: ['global-search-employees', debouncedQuery],
     queryFn: () => employeesApi.list(debouncedQuery),
-    enabled: debouncedQuery.length >= 2,
+    enabled: canSearchPeople && debouncedQuery.length >= 2,
   });
 
   const matchedEmployees = (employeeResults || []).slice(0, 5);
@@ -133,8 +140,8 @@ export default function Topbar({ onOpenMobileNav }) {
     () =>
       recentPaths
         .map((p) => NAV_INDEX.find((item) => item.to === p))
-        .filter((item) => item && (!item.permission || hasPermission(item.permission))),
-    [recentPaths, hasPermission]
+      .filter((item) => item && (!item.permission || hasPermission(item.permission)) && (!item.role || hasRole(item.role))),
+    [recentPaths, hasPermission, hasRole]
   );
 
   const flatResults = useMemo(() => {
@@ -230,14 +237,6 @@ export default function Topbar({ onOpenMobileNav }) {
   return (
     <header
       className="hz-topbar d-flex align-items-center gap-2 px-3 px-md-4"
-      style={{
-        height: 'var(--hz-topbar-height)',
-        background: '#ffffff',
-        borderBottom: '1px solid #e4eaf2',
-        position: 'sticky',
-        top: 0,
-        zIndex: 10,
-      }}
     >
       <div className="hz-brand-mark" aria-label="Vettri HRMS">
         <Logo tone="onDark" size={30} />
@@ -260,7 +259,7 @@ export default function Topbar({ onOpenMobileNav }) {
             type="search"
             placeholder={commandMode ? 'Type a command or search...' : 'Search employees, pages, or modules...'}
             className="form-control ps-5 pe-12 hz-search-input"
-            style={{ background: commandMode ? '#fef3c7' : '#f5f8fc', border: `1px solid ${commandMode ? '#f59e0b' : '#e4eaf2'}`, paddingRight: 48 }}
+            style={{ background: commandMode ? 'rgba(201,130,22,0.08)' : 'var(--hz-bg-canvas)', border: `1px solid ${commandMode ? 'var(--hz-accent-500)' : 'var(--hz-border)'}`, paddingRight: 48 }}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onFocus={() => setSearchOpen(true)}
@@ -400,6 +399,9 @@ export default function Topbar({ onOpenMobileNav }) {
       </div>
 
       <div className="d-flex align-items-center gap-2 ms-auto flex-shrink-0">
+        <button type="button" className="hz-icon-btn d-flex align-items-center justify-content-center" style={{ width: 38, height: 38 }} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={theme === 'dark' ? 'Use light theme' : 'Use dark theme'} title={theme === 'dark' ? 'Use light theme' : 'Use dark theme'}>
+          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
+        </button>
         {hasRole('SUPER_ADMIN') && (
           <label className="d-flex align-items-center gap-2 mb-0" title="Tenant company">
             <Building2 size={16} color="var(--hz-text-muted)" />
@@ -423,6 +425,7 @@ export default function Topbar({ onOpenMobileNav }) {
           </div>
         )}
         <button
+          type="button"
           className="hz-icon-btn position-relative d-flex align-items-center justify-content-center"
           style={{ width: 38, height: 38 }}
           aria-label="Notifications"
@@ -430,15 +433,12 @@ export default function Topbar({ onOpenMobileNav }) {
           onClick={() => setNotificationsOpen((open) => !open)}
         >
           <Bell size={18} />
-          <span
-            className="position-absolute rounded-circle"
-            style={{ width: 8, height: 8, background: '#ef4444', top: 8, right: 9, boxShadow: '0 0 0 2px #ffffff' }}
-          />
+          {unreadNotifications > 0 && <span className="hz-notification-dot" aria-label={`${unreadNotifications} unread notification${unreadNotifications === 1 ? '' : 's'}`} />}
         </button>
         {notificationsOpen && (
           <div className="hz-topbar-notifications hz-surface" role="status">
             <strong>Notifications</strong>
-            <span>You&apos;re all caught up.</span>
+            <span>{unreadNotifications ? `${unreadNotifications} unread notification${unreadNotifications === 1 ? '' : 's'}` : 'You&apos;re all caught up.'}</span>
           </div>
         )}
 

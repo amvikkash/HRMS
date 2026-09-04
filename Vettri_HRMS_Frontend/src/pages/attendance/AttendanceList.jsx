@@ -1,20 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Link } from 'react-router-dom';
+import { Link, Navigate } from 'react-router-dom';
 import { Radio, Clock, Fingerprint, AlertTriangle, CalendarOff, Users } from 'lucide-react';
 import { attendanceApi } from '../../api/endpoints/attendance';
 import Card from '../../components/ui/Card';
-import Badge from '../../components/ui/Badge';
+import StatusBadge from '../../components/ui/StatusBadge';
 import Avatar from '../../components/ui/Avatar';
 import Button from '../../components/ui/Button';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
 import { SkeletonText } from '../../components/ui/Skeleton';
 import PageHeader from '../../components/ui/PageHeader';
+import StatCard from '../../components/ui/StatCard';
+import { useAuth } from '../../hooks/useAuth';
 
 function PunchBadge({ type }) {
-  const variant = type === 'IN' ? 'success' : type === 'OUT' ? 'danger' : 'neutral';
-  return <Badge variant={variant}>{type}</Badge>;
+  return <StatusBadge status={type === 'IN' ? 'PRESENT' : type === 'OUT' ? 'COMPLETED' : type} variant={type === 'IN' ? 'success' : type === 'OUT' ? 'info' : 'neutral'} dot={false}>{type}</StatusBadge>;
 }
 
 /**
@@ -69,6 +70,12 @@ function AttendanceExceptionsCard() {
 }
 
 export default function AttendanceList() {
+  const { hasRole } = useAuth();
+  if (hasRole('EMPLOYEE')) return <Navigate to="/my-profile?tab=attendance" replace />;
+  return <AttendanceManagement />;
+}
+
+function AttendanceManagement() {
   const [liveRecords, setLiveRecords] = useState([]);
   const [connectionState, setConnectionState] = useState('connecting');
   const eventSourceRef = useRef(null);
@@ -190,7 +197,7 @@ export default function AttendanceList() {
                         <Avatar name="?" size="sm" />
                         <div>
                           <div style={{ fontWeight: 600, fontSize: 'var(--hz-text-sm)' }}>{r.employeeName}</div>
-                          <Badge variant="warning">Unmapped</Badge>
+                          <StatusBadge status="PENDING" variant="warning">Unmapped</StatusBadge>
                         </div>
                       </div>
                     )}
@@ -220,13 +227,7 @@ export default function AttendanceList() {
 function AttendanceMetric({ label, value, icon: Icon, tone }) {
   return (
     <div className="col-12 col-md-4">
-      <div className="hz-metric d-flex align-items-center gap-3">
-        <div className={`hz-metric__icon hz-metric__icon--${tone}`}><Icon size={18} /></div>
-        <div>
-          <div className="hz-metric__value">{value}</div>
-          <div className="hz-metric__label">{label}</div>
-        </div>
-      </div>
+      <StatCard label={label} value={value} icon={Icon} accent={tone === 'success' ? 'success' : tone === 'warning' ? 'warning' : 'primary'} />
     </div>
   );
 }
