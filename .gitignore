@@ -3,3 +3,5 @@ dist/
 .env
 .env.local
 .env.*.local
+Vettri_HRMS_frontend/
+Vettri_HRMS_frontend_BACKUP/
