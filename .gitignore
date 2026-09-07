@@ -1,19 +1,5 @@
-# Frontend
-Vettri_HRMS_Frontend/node_modules/
-Vettri_HRMS_Frontend/dist/
-
-# Backend
-Vettri_HRMS_Backend/target/
-
-# Environment
+node_modules/
+dist/
 .env
-.env.*
-!.env.example
-
-# IDE
-.vscode/
-.idea/
-
-# OS
-.DS_Store
-Thumbs.db
+.env.local
+.env.*.local
