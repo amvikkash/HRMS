@@ -1,32 +1,24 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Users, UserCheck, CalendarOff, CalendarDays, Clock3, Inbox, FileText, ArrowRight, ClipboardCheck, BarChart3, BriefcaseBusiness, Settings2, WalletCards, TrendingUp, LifeBuoy, PackageOpen, Cake, UserPlus2 } from 'lucide-react';
-import { BarChart, Bar as RechartsBar, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import { Users, UserCheck, CalendarOff, CalendarDays, Clock3, Inbox, FileText, ArrowRight, ClipboardCheck, PencilLine, Sparkles, BarChart3, BriefcaseBusiness, Settings2, WalletCards, TrendingUp, LifeBuoy } from 'lucide-react';
 import { dashboardApi } from '../api/endpoints/dashboard';
 import { holidaysApi, leaveRequestsApi } from '../api/endpoints/leave';
 import { documentsApi, DOCUMENT_TYPE_LABEL } from '../api/endpoints/documents';
 import { employeesApi } from '../api/endpoints/employees';
 import { attendanceApi } from '../api/endpoints/attendance';
 import { employeeSalaryApi } from '../api/endpoints/salary';
-import Card from '../components/ui/Card';
 import Avatar from '../components/ui/Avatar';
-import EmptyState from '../components/ui/EmptyState';
-import { SkeletonCard, SkeletonText } from '../components/ui/Skeleton';
-import ErrorState from '../components/ui/ErrorState';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../components/ui/Toast';
-import { formatCurrency } from '../utils/formatCurrency';
-import { selfServiceApi } from '../api/endpoints/selfService';
-import Dialog from '../components/ui/Dialog';
-import StatCard from '../components/ui/StatCard';
-import ChartCard from '../components/ui/ChartCard';
+import { EmployeeMetric, AttendanceWidget, LeaveWidget, FinanceWidget } from './dashboard/components/EmployeeWidgets';
 
 export default function Dashboard() {
   const { user, hasPermission, hasRole } = useAuth();
   const toast = useToast();
   const queryClient = useQueryClient();
   const firstName = user?.fullName?.split(' ')[0];
+  const [feedMode, setFeedMode] = useState('Post');
 
   // A plain EMPLOYEE (seeded with zero permissions - see DataSeeder) lands
   // here right after login with none of EMPLOYEE_VIEW/LEAVE_VIEW/etc. Skip
@@ -93,11 +85,6 @@ export default function Dashboard() {
     enabled: canViewExpiringDocs,
   });
 
-  const { data: orgHolidays } = useQuery({
-    queryKey: ['holidays'],
-    queryFn: holidaysApi.list,
-  });
-
   const decideLeave = useMutation({
     mutationFn: ({ id, approve }) => (approve ? leaveRequestsApi.approve(id) : leaveRequestsApi.reject(id)),
     onSuccess: () => {
@@ -111,14 +98,18 @@ export default function Dashboard() {
 
   const pendingCount = approvalQueue?.length || 0;
   const expiringCount = expiringDocs?.length || 0;
+  const kpis = data
+    ? [
+        { label: 'Total Employees', value: data.totalEmployees, icon: Users, accent: 'var(--hz-primary-600)' },
+        { label: 'Active', value: data.activeEmployees, icon: UserCheck, accent: 'var(--hz-success-500)' },
+        { label: 'On Leave', value: data.onLeave, icon: CalendarOff, accent: 'var(--hz-warning-500)' },
+        { label: 'Pending Actions', value: pendingCount, icon: ClipboardCheck, accent: 'var(--hz-primary-600)' },
+      ]
+    : [];
+
   const now = new Date();
   const today = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 18 ? 'Good afternoon' : 'Good evening';
-  const todayKey = now.toISOString().slice(0, 10);
-  const upcomingHolidays = (Array.isArray(orgHolidays) ? orgHolidays : [])
-    .filter((holiday) => typeof holiday.date === 'string' && holiday.date >= todayKey)
-    .sort((first, second) => first.date.localeCompare(second.date))
-    .slice(0, 3);
 
   if (hasRole('EMPLOYEE')) {
     return <EmployeeDashboard employeeId={user?.employeeId} firstName={firstName} greeting={greeting} today={today} />;
@@ -152,24 +143,30 @@ export default function Dashboard() {
         <div className="hz-dashboard__welcome-mark" aria-hidden="true"><Users size={21} /></div>
       </header>
 
-      <section className="hz-dashboard__metrics" aria-labelledby="workforce-metrics-title">
-        <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">At a glance</span><h2 id="workforce-metrics-title">Workforce metrics</h2></div><Link to="/employees" className="hz-dashboard__text-link">View workforce <ArrowRight size={15} /></Link></div>
-        <div className="hz-dashboard__metric-grid">
-          <StatCard label="Total employees" value={data?.totalEmployees ?? '--'} detail={data?.totalEmployees ? 'Current workforce' : 'No employees yet'} icon={Users} loading={isLoading} />
-          <StatCard label="Active" value={data?.activeEmployees ?? '--'} detail={data?.totalEmployees ? `${((data.activeEmployees / data.totalEmployees) * 100).toFixed(1)}% of workforce` : 'Current workforce'} icon={UserCheck} accent="success" loading={isLoading} />
-          <StatCard label="On leave" value={data?.onLeave ?? '--'} detail={data?.onLeave ? 'Today' : 'No leave recorded today'} icon={CalendarOff} accent="warning" loading={isLoading} />
-          <StatCard label="Pending actions" value={pendingCount} detail={pendingCount ? 'Requires attention' : 'All caught up'} icon={ClipboardCheck} accent={pendingCount ? 'danger' : 'primary'} loading={approvalQueueLoading} />
-        </div>
-      </section>
-
       <section className="hz-dashboard__explore" aria-labelledby="explore-title">
-        <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Navigate by outcome</span><h2 id="explore-title">Workspace shortcuts</h2></div></div>
+        <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Your workspace</span><h2 id="explore-title">Explore Vettri HRMS</h2></div></div>
         <div className="hz-dashboard__module-grid">
           {modules.map(({ title, description, icon: Icon, accent, to }) => <Link to={to} className="hz-dashboard__module-card" key={title}>
             <span className={`hz-dashboard__module-icon hz-dashboard__module-icon--${accent}`}><Icon size={19} /></span>
             <span className="hz-dashboard__module-copy"><strong>{title}</strong><small>{description}</small></span>
             <ArrowRight size={16} />
           </Link>)}
+        </div>
+      </section>
+
+      <section className="hz-dashboard__metrics" aria-labelledby="workforce-metrics-title">
+        <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">At a glance</span><h2 id="workforce-metrics-title">Workforce metrics</h2></div><Link to="/employees" className="hz-dashboard__text-link">View workforce <ArrowRight size={15} /></Link></div>
+        <div className="hz-dashboard__metric-grid">
+          {(data ? kpis : [
+            { label: 'Total Employees', value: '--', icon: Users, accent: 'var(--hz-primary-600)' },
+            { label: 'Active', value: '--', icon: UserCheck, accent: 'var(--hz-primary-600)' },
+            { label: 'On Leave', value: '--', icon: CalendarOff, accent: 'var(--hz-primary-600)' },
+            { label: 'Pending Actions', value: '--', icon: ClipboardCheck, accent: 'var(--hz-primary-600)' },
+          ]).map(({ label, value, icon: Icon, accent }) => <article className="hz-dashboard__metric" key={label}>
+            <div className="hz-dashboard__metric-icon" style={{ color: accent }}><Icon size={19} /></div>
+            <span>{label}</span><strong>{value}</strong>
+            <small>{label === 'Active' && data ? `${data.totalEmployees ? ((data.activeEmployees / data.totalEmployees) * 100).toFixed(1) : 0}% of workforce` : label === 'On Leave' ? (data?.onLeave ? 'Today' : 'No leave recorded today') : label === 'Pending Actions' ? (pendingCount ? 'Requires attention' : 'All caught up') : (data?.totalEmployees ? 'Current workforce' : 'No employees yet')}</small>
+          </article>)}
         </div>
       </section>
 
@@ -194,64 +191,22 @@ export default function Dashboard() {
         </section>
       </div>
 
-      <ChartCard title="Workforce by department" subtitle="Headcount distribution across your organization" className="hz-dashboard__insights" actions={<Link to="/reports" className="hz-dashboard__text-link">Open reports <ArrowRight size={15} /></Link>}>
-        {data?.departmentBreakdown?.length ? <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={data.departmentBreakdown.map((d) => ({ label: d.departmentName || 'Unassigned', value: d.count }))} margin={{ top: 8, right: 8, left: -20, bottom: 8 }}>
-            <CartesianGrid vertical={false} stroke="var(--hz-border)" strokeDasharray="3 3" />
-            <XAxis dataKey="label" tick={{ fill: 'var(--hz-text-muted)', fontSize: 11 }} tickLine={false} axisLine={false} interval={0} angle={-15} textAnchor="end" height={44} />
-            <YAxis allowDecimals={false} tick={{ fill: 'var(--hz-text-muted)', fontSize: 11 }} tickLine={false} axisLine={false} />
-            <Tooltip cursor={{ fill: 'var(--hz-primary-50)' }} contentStyle={{ border: '1px solid var(--hz-border)', borderRadius: 8, fontSize: 12 }} />
-            <RechartsBar dataKey="value" fill="var(--hz-primary-500)" radius={[6, 6, 0, 0]} name="Employees" />
-          </BarChart>
-        </ResponsiveContainer> : data ? <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={[{ label: 'Active', value: data.activeEmployees }, { label: 'On leave', value: data.onLeave }, { label: 'Other', value: Math.max(0, data.totalEmployees - data.activeEmployees) }]} margin={{ top: 8, right: 8, left: -20, bottom: 8 }}>
-            <CartesianGrid vertical={false} stroke="var(--hz-border)" strokeDasharray="3 3" />
-            <XAxis dataKey="label" tick={{ fill: 'var(--hz-text-muted)', fontSize: 11 }} tickLine={false} axisLine={false} />
-            <YAxis allowDecimals={false} tick={{ fill: 'var(--hz-text-muted)', fontSize: 11 }} tickLine={false} axisLine={false} />
-            <Tooltip cursor={{ fill: 'var(--hz-primary-50)' }} contentStyle={{ border: '1px solid var(--hz-border)', borderRadius: 8, fontSize: 12 }} />
-            <RechartsBar dataKey="value" fill="var(--hz-primary-500)" radius={[6, 6, 0, 0]} name="Employees" />
-          </BarChart>
-        </ResponsiveContainer> : <div className="hz-dashboard__empty-inline"><BarChart3 size={22} /><div><strong>Insights will appear as your workforce grows</strong><small>Connect attendance, leave, and employee data to see trends here.</small></div></div>}
-      </ChartCard>
+      <section className="hz-dashboard__surface hz-dashboard__insights" aria-labelledby="insights-title">
+        <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Workforce intelligence</span><h2 id="insights-title">Workforce insights</h2></div><BarChart3 size={20} aria-hidden="true" /></div>
+        <div className="hz-dashboard__empty-inline"><BarChart3 size={22} /><div><strong>Insights will appear as your workforce grows</strong><small>Connect attendance, leave, and employee data to see trends here.</small></div></div>
+      </section>
 
       <div className="hz-dashboard__secondary-grid">
-        <section className="hz-dashboard__surface" aria-labelledby="joiners-title">
-          <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Fresh faces</span><h2 id="joiners-title">Recent joiners</h2></div><Link to="/employees" className="hz-dashboard__text-link">View all <ArrowRight size={15} /></Link></div>
-          {data?.recentJoiners?.length ? <div className="hz-dashboard__people-list">
-            {data.recentJoiners.slice(0, 5).map((person) => (
-              <Link to={`/employees/${person.id}`} className="hz-dashboard__people-row" key={person.id}>
-                <Avatar name={person.fullName} src={person.profilePhotoUrl} size="sm" />
-                <span className="hz-dashboard__people-copy"><strong>{person.fullName}</strong><small>{person.designationTitle || person.departmentName || 'Joined the team'}</small></span>
-              </Link>
-            ))}
-          </div> : <div className="hz-dashboard__empty-inline"><UserPlus2 size={20} /><div><strong>No recent joiners</strong><small>New hires will show up here as they're added.</small></div></div>}
-        </section>
-        <section className="hz-dashboard__surface" aria-labelledby="birthdays-title">
-          <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Celebrate</span><h2 id="birthdays-title">Upcoming birthdays</h2></div></div>
-          {data?.upcomingBirthdays?.length ? <div className="hz-dashboard__people-list">
-            {data.upcomingBirthdays.slice(0, 5).map((person) => (
-              <Link to={`/employees/${person.employeeId}`} className="hz-dashboard__people-row" key={person.employeeId}>
-                <Avatar name={person.fullName} src={person.profilePhotoUrl} size="sm" />
-                <span className="hz-dashboard__people-copy"><strong>{person.fullName}</strong><small>{person.dateOfBirth ? new Date(`${person.dateOfBirth}T00:00:00`).toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) : 'This month'}</small></span>
-                <Cake size={16} className="hz-dashboard__people-icon" aria-hidden="true" />
-              </Link>
-            ))}
-          </div> : <div className="hz-dashboard__empty-inline"><Cake size={20} /><div><strong>No birthdays coming up</strong><small>Add employee dates of birth to see them here.</small></div></div>}
+        <section className="hz-dashboard__surface hz-dashboard__updates" aria-labelledby="updates-title">
+          <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Company feed</span><h2 id="updates-title">Organization updates</h2></div></div>
+          <div className="hz-post-box">
+            <div className="hz-post-box__actions"><button type="button" className={feedMode === 'Post' ? 'active' : ''} onClick={() => setFeedMode('Post')}><PencilLine size={15} /> Post</button><button type="button" className={feedMode === 'Poll' ? 'active' : ''} onClick={() => setFeedMode('Poll')}><ClipboardCheck size={15} /> Poll</button><button type="button" className={feedMode === 'Praise' ? 'active' : ''} onClick={() => setFeedMode('Praise')}><Sparkles size={15} /> Praise</button></div>
+            <div className="hz-post-box__placeholder">{feedMode} updates are not configured for this workspace yet.</div>
+          </div>
         </section>
         <section className="hz-dashboard__surface" aria-labelledby="holiday-title">
-          <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Plan ahead</span><h2 id="holiday-title">Upcoming holidays</h2></div></div>
-          {upcomingHolidays.length ? <div className="hz-dashboard__holiday-list">
-            {upcomingHolidays.map((holiday) => (
-              <div className="hz-dashboard__holiday-row" key={holiday.id}>
-                <div className="hz-dashboard__holiday-date">
-                  <strong>{new Date(`${holiday.date}T00:00:00`).toLocaleDateString('en-US', { day: '2-digit' })}</strong>
-                  <span>{new Date(`${holiday.date}T00:00:00`).toLocaleDateString('en-US', { month: 'short' })}</span>
-                </div>
-                <span className="hz-dashboard__holiday-name">{holiday.name}</span>
-              </div>
-            ))}
-          </div> : <div className="hz-dashboard__holiday hz-dashboard__holiday--empty"><span>No holiday data available</span><strong>Upcoming holidays</strong><small>Add holidays in Settings to see them here.</small></div>}
-          <Link to="/settings/leave" className="hz-dashboard__text-link">Manage holiday calendar <ArrowRight size={14} /></Link>
+          <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Plan ahead</span><h2 id="holiday-title">Upcoming holiday</h2></div></div>
+          <div className="hz-dashboard__holiday hz-dashboard__holiday--empty"><span>No holiday data available</span><strong>Upcoming holidays</strong><small>Add or configure holidays to see them here.</small><Link to="/reports">View holiday calendar <ArrowRight size={14} /></Link></div>
         </section>
       </div>
 
@@ -266,19 +221,6 @@ export default function Dashboard() {
 
 function EmployeeDashboard({ employeeId, firstName, greeting, today }) {
   const year = new Date().getFullYear();
-  const { user, hasPermission } = useAuth();
-  const [customizeOpen, setCustomizeOpen] = useState(false);
-  const [dashboardSection, setDashboardSection] = useState('workspace');
-  const [visibleSections, setVisibleSections] = useState(() => {
-    try {
-      return JSON.parse(localStorage.getItem('vettri.dashboard.sections')) || { glance: true, workspace: true, actions: true, support: true };
-    } catch {
-      return { glance: true, workspace: true, actions: true, support: true };
-    }
-  });
-  useEffect(() => {
-    localStorage.setItem('vettri.dashboard.sections', JSON.stringify(visibleSections));
-  }, [visibleSections]);
   const { data: employee } = useQuery({
     queryKey: ['employee-dashboard-profile', employeeId],
     queryFn: () => employeesApi.getById(employeeId),
@@ -304,11 +246,6 @@ function EmployeeDashboard({ employeeId, firstName, greeting, today }) {
     queryFn: () => documentsApi.byEmployee(employeeId),
     enabled: !!employeeId,
   });
-  const { data: assetsData } = useQuery({
-    queryKey: ['employee-dashboard-assets'],
-    queryFn: selfServiceApi.assets,
-    enabled: !!employeeId,
-  });
   const { data: salary } = useQuery({
     queryKey: ['employee-dashboard-salary', employeeId],
     queryFn: () => employeeSalaryApi.getDetail(employeeId),
@@ -319,19 +256,12 @@ function EmployeeDashboard({ employeeId, firstName, greeting, today }) {
     queryFn: holidaysApi.list,
     enabled: !!employeeId,
   });
-  const { data: notificationsData } = useQuery({
-    queryKey: ['employee-dashboard-notifications'],
-    queryFn: selfServiceApi.notifications,
-    enabled: !!employeeId,
-  });
 
   const attendance = Array.isArray(attendanceData) ? attendanceData : [];
   const leaveBalance = Array.isArray(leaveBalanceData) ? leaveBalanceData : [];
   const leaveRequests = Array.isArray(leaveRequestsData) ? leaveRequestsData : [];
   const documents = Array.isArray(documentsData) ? documentsData : [];
-  const assets = Array.isArray(assetsData) ? assetsData : [];
   const holidays = Array.isArray(holidaysData) ? holidaysData : [];
-  const notifications = Array.isArray(notificationsData) ? notificationsData : [];
   const todayKey = new Date().toISOString().slice(0, 10);
   const todayPunches = attendance.filter((record) => typeof record.punchTime === 'string' && record.punchTime.slice(0, 10) === todayKey);
   const hasCheckedIn = todayPunches.some((record) => record.punchType === 'IN');
@@ -342,21 +272,12 @@ function EmployeeDashboard({ employeeId, firstName, greeting, today }) {
   const pendingLeave = leaveRequests.filter((request) => request.status === 'PENDING').length;
   const totalRemainingLeave = leaveBalance.reduce((total, item) => total + (item.remainingDays || 0), 0);
 
-  const latestPayslip = salary?.payrollHistory?.[0];
-  const attendanceTime = todayPunches.find((record) => record.punchType === 'IN')?.punchTime;
-  const checkIn = todayPunches.find((record) => record.punchType === 'IN')?.punchTime;
-  const checkOut = todayPunches.find((record) => record.punchType === 'OUT')?.punchTime;
-  const workingSeconds = checkIn ? Math.max(0, ((checkOut ? new Date(checkOut) : new Date()).getTime() - new Date(checkIn).getTime()) / 1000) : 0;
-  const workingHours = checkIn ? `${String(Math.floor(workingSeconds / 3600)).padStart(2, '0')}h ${String(Math.floor((workingSeconds % 3600) / 60)).padStart(2, '0')}m` : '--';
   const services = [
-    { group: 'My work', title: 'My Profile', description: 'Personal and employment information', context: 'View profile', icon: UserCheck, to: '/my-profile' },
-    { group: 'My work', title: 'My Job', description: 'Role, department and reporting details', context: 'View job', icon: BriefcaseBusiness, to: '/my-profile?tab=job' },
-    { group: 'My work', title: 'Attendance', description: 'Today\'s attendance and attendance history', context: 'View attendance', icon: Clock3, to: '/my-profile?tab=attendance' },
-    { group: 'My work', title: 'Leave', description: 'Balances, requests and leave history', context: 'View leave', icon: CalendarOff, to: '/my-profile?tab=leave' },
-    { group: 'My work', title: 'My Interviews', description: 'Upcoming interviews and feedback', context: 'View interviews', icon: CalendarDays, to: '/my-interviews' },
-    { group: 'Pay & documents', title: 'My Pay', description: 'Salary details and latest payslips', context: 'View pay', icon: WalletCards, to: '/my-payslip' },
-    { group: 'Pay & documents', title: 'My Documents', description: 'Documents held on your employee record', context: 'View documents', icon: FileText, to: '/my-profile?tab=documents' },
-    { group: 'My work', title: 'My Assets', description: 'Company equipment assigned to you', context: 'View assets', icon: PackageOpen, to: '/my-profile?tab=assets' },
+    { title: 'My Profile', description: 'Keep your personal and employment details close at hand.', icon: UserCheck, to: '/my-profile' },
+    { title: 'Attendance', description: 'Review your recorded punches and attendance history.', icon: Clock3, to: '/my-profile?tab=attendance' },
+    { title: 'Leave', description: 'View balances and follow your leave requests.', icon: CalendarOff, to: '/my-profile?tab=leave' },
+    { title: 'View Payslip', description: 'Access your salary details and payslip information.', icon: WalletCards, to: '/my-payslip' },
+    { title: 'My Documents', description: 'Review the documents held on your employee record.', icon: FileText, to: '/my-profile?tab=documents' },
   ];
 
   return (
@@ -367,8 +288,7 @@ function EmployeeDashboard({ employeeId, firstName, greeting, today }) {
           <h1>{greeting}, {firstName || 'there'}</h1>
           <p>Your employee workspace, shaped around the things you need most.</p>
         </div>
-        <Avatar name={employee?.fullName || firstName} src={employee?.profilePhotoUrl} size="md" />
-        <button type="button" className="hz-dashboard__customize" onClick={() => setCustomizeOpen(true)}>Customize</button>
+        <div className="hz-dashboard__welcome-mark" aria-hidden="true"><UserCheck size={21} /></div>
       </header>
       <section className="hz-dashboard__quick-actions" aria-labelledby="employee-quick-actions-title">
         <div>
@@ -383,45 +303,35 @@ function EmployeeDashboard({ employeeId, firstName, greeting, today }) {
           <Link to="/my-profile"><UserCheck size={17} /> My profile</Link>
         </div>
       </section>
-      {visibleSections.glance && <section className="hz-dashboard__employee-status" aria-labelledby="today-glance-title">
-        <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Your day</span><h2 id="today-glance-title">Today at a glance</h2></div></div>
-        <div className="hz-dashboard__employee-status-grid">
-          <EmployeeMetric icon={Clock3} label="Attendance" value={attendanceLoading ? 'Loading' : attendanceTime ? new Date(attendanceTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Not recorded'} detail={attendanceTime ? (hasCheckedOut ? 'Checked out' : 'Checked in') : 'No check-in recorded today'} tone="blue" />
-          <EmployeeMetric icon={Clock3} label="Working hours" value={attendanceLoading ? 'Loading' : workingHours} detail={checkOut ? 'Today total' : checkIn ? 'Current session' : 'Starts after check-in'} tone="blue" />
-          <EmployeeMetric icon={CalendarOff} label="Leave balance" value={leaveLoading ? 'Loading' : `${totalRemainingLeave} days`} detail={`${year} available balance`} tone="green" />
-          <EmployeeMetric icon={WalletCards} label="Payroll" value={latestPayslip ? 'Latest payslip' : salary?.currentStructure ? 'Available' : 'Not configured'} detail={latestPayslip?.paymentDate ? new Date(latestPayslip.paymentDate).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : salary?.currentStructure ? 'View your salary details' : 'Your pay will appear here'} tone="gold" />
-          <EmployeeMetric icon={CalendarDays} label="Next holiday" value={nextHoliday?.date ? new Date(`${nextHoliday.date}T00:00:00`).toLocaleDateString('en-US', { day: '2-digit', month: 'short' }) : 'None scheduled'} detail={nextHoliday?.name || 'Company calendar'} tone="blue" />
+      <section className="hz-dashboard__employee-status-grid" aria-label="Employee overview">
+        <EmployeeMetric icon={Clock3} label="Today" value={attendanceLoading ? '...' : hasCheckedOut ? 'Checked out' : hasCheckedIn ? 'Checked in' : 'Not recorded'} detail={hasCheckedIn ? (hasCheckedOut ? 'Attendance complete' : 'Have a productive day') : 'Your attendance status'} tone="blue" />
+        <EmployeeMetric icon={CalendarOff} label="Leave balance" value={leaveLoading ? '...' : `${totalRemainingLeave} days`} detail={`${year} remaining across leave types`} tone="green" />
+        <EmployeeMetric icon={WalletCards} label="My pay" value={salary?.currentStructure ? 'Available' : 'Not configured'} detail={salary?.currentStructure ? 'View salary and payslips' : 'Contact HR for details'} tone="gold" />
+        <EmployeeMetric icon={CalendarDays} label="Next holiday" value={nextHoliday?.name || 'None scheduled'} detail={nextHoliday?.date ? new Date(`${nextHoliday.date}T00:00:00`).toLocaleDateString() : 'Company calendar'} tone="coral" />
+      </section>
+      <section className="hz-dashboard__explore" aria-labelledby="employee-services-title">
+        <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Employee services</span><h2 id="employee-services-title">Your workspace</h2></div></div>
+        <div className="hz-dashboard__module-grid">
+          {services.map(({ title, description, icon: Icon, to }) => (
+            <Link to={to} className="hz-dashboard__module-card" key={title}>
+              <span className="hz-dashboard__module-icon hz-dashboard__module-icon--blue"><Icon size={19} /></span>
+              <span className="hz-dashboard__module-copy"><strong>{title}</strong><small>{description}</small></span>
+              <ArrowRight size={16} />
+            </Link>
+          ))}
         </div>
-      </section>}
-      <nav className="hz-dashboard__section-switcher" aria-label="Dashboard sections">
-        {[['workspace', 'Your Workspace'], ['company', 'Your Company'], ['activity', 'Activity']].map(([key, label]) => (
-          <button key={key} type="button" className={dashboardSection === key ? 'is-active' : ''} onClick={() => setDashboardSection(key)} aria-current={dashboardSection === key ? 'page' : undefined}>{label}</button>
-        ))}
-      </nav>
-      {dashboardSection === 'workspace' && <section className="hz-dashboard__explore hz-dashboard__section-panel" aria-labelledby="employee-services-title">
-        <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Employee services</span><h2 id="employee-services-title">Your workspace</h2></div><Link to="/my-profile" className="hz-dashboard__text-link">Open profile <ArrowRight size={15} /></Link></div>
-        <div className="hz-dashboard__workspace-groups">
-          {['My work', 'Pay & documents'].map((group) => <div className="hz-dashboard__workspace-group" key={group}>
-            <h3>{group}</h3>
-            <div className="hz-dashboard__service-list">
-              {services.filter((service) => service.group === group).map(({ title, description, context, icon: Icon, to }) => (
-                <Link to={to} className="hz-dashboard__service-row" key={title}>
-                  <span className="hz-dashboard__module-icon hz-dashboard__module-icon--blue"><Icon size={18} /></span>
-                  <span className="hz-dashboard__module-copy"><strong>{title}</strong><small>{description}</small><em>{context}</em></span>
-                  <ArrowRight size={16} />
-                </Link>
-              ))}
-            </div>
-          </div>)}
-        </div>
-      </section>}
-      {dashboardSection === 'activity' && <div className="hz-dashboard__activity-layout hz-dashboard__section-panel">
+      </section>
+      <div className="hz-dashboard__employee-widgets">
+        <AttendanceWidget records={attendance} loading={attendanceLoading} />
+        <LeaveWidget balances={leaveBalance} requests={leaveRequests} loading={leaveLoading} year={year} />
+        <FinanceWidget salary={salary} />
+      </div>
+      <div className="hz-dashboard__primary-grid">
         <section className="hz-dashboard__surface" aria-labelledby="employee-actions-title">
           <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Stay on track</span><h2 id="employee-actions-title">Pending actions</h2></div></div>
           <div className="hz-dashboard__attention-list">
             <Link to="/my-profile?tab=leave" className="hz-dashboard__attention-row"><span className="hz-dashboard__row-icon"><CalendarOff size={18} /></span><span className="hz-dashboard__row-copy"><strong>Leave requests</strong><small>{pendingLeave ? `${pendingLeave} request${pendingLeave === 1 ? '' : 's'} awaiting review` : 'No pending leave requests'}</small></span><ArrowRight size={16} /></Link>
             <Link to="/my-profile?tab=documents" className="hz-dashboard__attention-row"><span className="hz-dashboard__row-icon"><FileText size={18} /></span><span className="hz-dashboard__row-copy"><strong>Documents</strong><small>{documents.length ? `${documents.length} document${documents.length === 1 ? '' : 's'} on your record` : 'No documents on your record yet'}</small></span><ArrowRight size={16} /></Link>
-            <Link to="/my-profile?tab=assets" className="hz-dashboard__attention-row"><span className="hz-dashboard__row-icon"><PackageOpen size={18} /></span><span className="hz-dashboard__row-copy"><strong>Assets</strong><small>{assets.length ? `${assets.length} assigned compan${assets.length === 1 ? 'y asset' : 'y assets'}` : 'No company assets assigned'}</small></span><ArrowRight size={16} /></Link>
           </div>
         </section>
         <section className="hz-dashboard__surface" aria-labelledby="employee-identity-title">
@@ -432,96 +342,13 @@ function EmployeeDashboard({ employeeId, firstName, greeting, today }) {
           </div>
           <Link to="/my-profile" className="hz-dashboard__text-link mt-3 d-inline-flex">Open my profile <ArrowRight size={15} /></Link>
         </section>
-        <section className="hz-dashboard__surface hz-dashboard__activity" aria-labelledby="employee-activity-title">
-        <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Recent updates</span><h2 id="employee-activity-title">Activity</h2></div><Link to="/notifications" className="hz-dashboard__text-link">View all <ArrowRight size={15} /></Link></div>
-        {notifications.length ? <div className="hz-dashboard__activity-list">{notifications.slice(0, 5).map((notification) => <div className="hz-dashboard__activity-row" key={notification.id}><span className={`hz-dashboard__activity-dot ${notification.read_at || notification.readAt ? '' : 'is-unread'}`} /><div><strong>{notification.title || 'Account update'}</strong><small>{notification.message || 'New information is available.'}</small><time>{formatActivityTime(notification.created_at || notification.createdAt)}</time></div></div>)}</div> : <div className="hz-dashboard__empty-inline"><Inbox size={20} /><div><strong>No recent updates</strong><small>Notifications and approvals will appear here.</small></div></div>}
-        </section>
-      </div>}
-      {dashboardSection === 'company' && <section className="hz-dashboard__company-section hz-dashboard__section-panel" aria-labelledby="employee-company-title">
-        <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Organization</span><h2 id="employee-company-title">Your company</h2></div><Link to="/support" className="hz-dashboard__text-link">Get support <ArrowRight size={15} /></Link></div>
-        <div className="hz-dashboard__company-grid">
-          <section className="hz-dashboard__surface hz-dashboard__company-card"><span className="hz-dashboard__company-label">Company</span><strong>{employee?.companyName || user?.companyName || 'Your organization'}</strong><small>{employee?.departmentName || 'Employee workspace'}{employee?.reportingManagerName ? ` · Reports to ${employee.reportingManagerName}` : ''}</small><Link to="/my-profile?tab=job" className="hz-dashboard__text-link">View organization details <ArrowRight size={15} /></Link></section>
-          <section className="hz-dashboard__surface hz-dashboard__company-card"><span className="hz-dashboard__company-label">Next holiday</span><strong>{nextHoliday?.name || 'No holiday scheduled'}</strong><small>{nextHoliday?.date ? new Date(`${nextHoliday.date}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'Company calendar'}</small><Link to="/my-profile?tab=leave" className="hz-dashboard__text-link">View leave calendar <ArrowRight size={15} /></Link></section>
-        </div>
-        <section className="hz-dashboard__support-strip" aria-labelledby="employee-support-title">
+      </div>
+      <section className="hz-dashboard__support-strip" aria-labelledby="employee-support-title">
         <div><span className="hz-dashboard__section-kicker">Need a hand?</span><h2 id="employee-support-title">Support information</h2><p>Reach the right team for your Vettri HRMS questions.</p></div>
         <Link to="/support" className="hz-dashboard__text-link">View support info <ArrowRight size={15} /></Link>
         <LifeBuoy size={28} aria-hidden="true" />
-        </section>
-      </section>}
-      <Dialog open={customizeOpen} onClose={() => setCustomizeOpen(false)} title="Customize your dashboard" description="Choose which sections appear on your employee home.">
-        <div className="hz-dashboard-preferences">
-          <label><input type="checkbox" checked={visibleSections.glance} onChange={(event) => setVisibleSections((current) => ({ ...current, glance: event.target.checked }))} />Today at a glance</label>
-        </div>
-        <div className="d-flex justify-content-end gap-2 mt-3"><button type="button" className="btn btn-secondary" onClick={() => setCustomizeOpen(false)}>Done</button></div>
-      </Dialog>
+      </section>
     </div>
   );
 }
 
-function EmployeeMetric({ icon: Icon, label, value, detail, tone }) {
-  return <article className={`hz-dashboard__employee-metric hz-dashboard__employee-metric--${tone}`}><span className="hz-dashboard__employee-metric-icon"><Icon size={18} /></span><div><span>{label}</span><strong>{value}</strong><small>{detail}</small></div></article>;
-}
-
-function formatActivityTime(value) {
-  if (!value) return 'Recently';
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return 'Recently';
-  return date.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
-}
-
-function AttendanceWidget({ records, loading }) {
-  const todayKey = new Date().toISOString().slice(0, 10);
-  const todayRecords = records.filter((record) => record.punchTime?.slice(0, 10) === todayKey);
-  const checkIn = todayRecords.find((record) => record.punchType === 'IN');
-  const checkOut = todayRecords.find((record) => record.punchType === 'OUT');
-  const days = Array.from({ length: 7 }, (_, index) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (6 - index));
-    const key = date.toISOString().slice(0, 10);
-    return { label: date.toLocaleDateString('en-US', { weekday: 'short' }).slice(0, 2), active: records.some((record) => record.punchTime?.slice(0, 10) === key) };
-  });
-
-  return (
-    <section className="hz-dashboard__surface hz-attendance-widget" aria-labelledby="attendance-widget-title">
-      <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Today</span><h2 id="attendance-widget-title">Attendance</h2></div><Clock3 size={19} aria-hidden="true" /></div>
-      {loading ? <SkeletonText lines={4} /> : <>
-        <div className="hz-attendance-widget__summary">
-          <div><strong>{checkIn ? new Date(checkIn.punchTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '--:--'}</strong><span>Check-in</span></div>
-          <div><strong>{checkOut ? new Date(checkOut.punchTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Working'}</strong><span>{checkOut ? 'Check-out' : 'Current status'}</span></div>
-        </div>
-        <div className="hz-attendance-widget__week" aria-label="Attendance for the last seven days">
-          {days.map((day) => <span key={`${day.label}-${day.active}`} className={day.active ? 'is-present' : ''}><i />{day.label}</span>)}
-        </div>
-      </>}
-      <Link to="/my-profile?tab=attendance" className="hz-dashboard__text-link">View attendance <ArrowRight size={15} /></Link>
-    </section>
-  );
-}
-
-function LeaveWidget({ balances, requests, loading, year }) {
-  const upcoming = requests.filter((request) => request.startDate >= new Date().toISOString().slice(0, 10)).sort((first, second) => first.startDate.localeCompare(second.startDate))[0];
-  return (
-    <section className="hz-dashboard__surface hz-leave-widget" aria-labelledby="leave-widget-title">
-      <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">{year} balance</span><h2 id="leave-widget-title">Leave</h2></div><CalendarOff size={19} aria-hidden="true" /></div>
-      {loading ? <SkeletonText lines={4} /> : balances.length ? <div className="hz-leave-widget__balances">{balances.slice(0, 3).map((balance) => <div key={balance.leaveTypeId}><span>{balance.leaveTypeName}</span><strong>{balance.remainingDays}<small> days</small></strong></div>)}</div> : <EmptyState icon={CalendarOff} title="No leave types yet" description="Your leave balances will appear here." />}
-      <div className="hz-leave-widget__upcoming"><span>Upcoming leave</span><strong>{upcoming ? `${upcoming.leaveTypeName} · ${new Date(upcoming.startDate).toLocaleDateString()}` : 'Nothing scheduled'}</strong></div>
-      <Link to="/my-profile?tab=leave" className="hz-dashboard__text-link">Apply leave <ArrowRight size={15} /></Link>
-    </section>
-  );
-}
-
-function FinanceWidget({ salary }) {
-  const structure = salary?.currentStructure;
-  const latestPayslip = salary?.payrollHistory?.[0];
-  return (
-    <section className="hz-dashboard__surface hz-finance-widget" aria-labelledby="finance-widget-title">
-      <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">My finances</span><h2 id="finance-widget-title">Latest pay</h2></div><WalletCards size={19} aria-hidden="true" /></div>
-      <span className="hz-finance-widget__label">Net pay</span>
-      <strong className="hz-finance-widget__amount">{structure ? formatCurrency(structure.netSalary) : '--'}</strong>
-      <div className="hz-finance-widget__details"><span>Earnings <strong>{structure ? formatCurrency(structure.grossSalary) : '--'}</strong></span><span>Deductions <strong>{structure ? formatCurrency(structure.totalDeductions) : '--'}</strong></span></div>
-      <p>{latestPayslip ? `Latest payslip · ${latestPayslip.paymentDate ? new Date(latestPayslip.paymentDate).toLocaleDateString() : 'Pending payment'}` : 'Your latest payslip will appear here.'}</p>
-      <Link to="/my-payslip" className="hz-dashboard__text-link">View payslip <ArrowRight size={15} /></Link>
-    </section>
-  );
-}

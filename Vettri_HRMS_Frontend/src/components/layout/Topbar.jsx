@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Search, Bell, ChevronDown, LogOut, UserCircle, Clock3, Menu, Building2, ShieldAlert, Zap, Trash2, Sun, Moon, CheckCheck, Circle, Plus, Users, CalendarDays, Briefcase } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -40,6 +40,7 @@ export default function Topbar({ onOpenMobileNav }) {
   const { user, logout, hasPermission, hasRole, selectedCompanyId, setSelectedCompanyId } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -52,6 +53,13 @@ export default function Topbar({ onOpenMobileNav }) {
   const [searchHistory, setSearchHistory] = useState([]);
   const searchBoxRef = useRef(null);
   const { recentPaths } = useNavMemory();
+  const currentPage = useMemo(() => {
+    const item = NAV_INDEX.find((entry) => {
+      const [path] = entry.to.split('?');
+      return path === location.pathname || (path !== '/' && location.pathname.startsWith(`${path}/`));
+    });
+    return item?.label || 'Workspace';
+  }, [location.pathname]);
   const { data: notifications = [] } = useQuery({ queryKey: ['notifications'], queryFn: selfServiceApi.notifications, enabled: !!user });
   const unreadNotifications = notifications.filter((notification) => !(notification.read_at || notification.readAt)).length;
   const recentNotifications = notifications.slice(0, 5);
@@ -263,6 +271,11 @@ export default function Topbar({ onOpenMobileNav }) {
       >
         <Menu size={20} />
       </button>
+
+      <div className="hz-topbar-context d-none d-lg-flex" aria-live="polite">
+        <span className="hz-topbar-context__eyebrow">Workspace</span>
+        <strong>{currentPage}</strong>
+      </div>
 
       <div className="position-relative hz-topbar-search" ref={searchBoxRef}>
         <div className="position-relative w-100">

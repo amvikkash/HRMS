@@ -10,7 +10,6 @@ import { useAuth } from '../../hooks/useAuth';
 import { NAV_SECTIONS } from './navConfig';
 
 export default function MainLayout() {
-  const [collapsed, setCollapsed] = useState(false);
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
@@ -31,8 +30,6 @@ export default function MainLayout() {
     <NavMemoryProvider>
       <div className="hz-app-shell d-flex">
         <Sidebar
-          collapsed={collapsed}
-          onToggle={() => setCollapsed((c) => !c)}
           mobileOpen={mobileNavOpen}
           onCloseMobile={() => setMobileNavOpen(false)}
         />

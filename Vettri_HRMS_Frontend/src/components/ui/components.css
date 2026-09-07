@@ -7616,13 +7616,13 @@ button:disabled,
 /* Final compact density V2: shared dimensions, not visual scaling. */
 @media (min-width: 992px) {
   .hz-app-shell > .hz-sidebar,
-  .hz-app-shell > .hz-icon-rail { width: 66px !important; min-width: 66px; }
+  .hz-app-shell > .hz-icon-rail { width: var(--vettri-sidebar-rail-width) !important; min-width: var(--vettri-sidebar-rail-width); }
   .hz-app-shell > .hz-sidebar > div:first-child,
   .hz-app-shell > .hz-icon-rail > div:first-child { height: 54px !important; }
   .hz-app-shell .hz-rail-item,
   .hz-app-shell .hz-rail-settings { width: 50px; min-height: 40px; gap: 3px; padding: 6px 4px; }
-  .hz-app-shell .hz-nav-flyout { left: 66px; width: 232px; }
-  .hz-app-shell .hz-topbar { height: 54px !important; min-height: 54px; padding-right: 16px !important; padding-left: 16px !important; }
+  .hz-app-shell .hz-nav-flyout { left: var(--vettri-sidebar-rail-width); width: 232px; }
+  .hz-app-shell .hz-topbar { height: var(--vettri-topbar-height) !important; min-height: var(--vettri-topbar-height); padding-right: 16px !important; padding-left: 16px !important; }
   .hz-app-shell .hz-topbar .hz-brand-mark { min-width: 176px; }
   .hz-app-shell .hz-topbar .hz-search-input { height: 36px; min-height: 36px; }
   .hz-app-shell .hz-topbar .hz-icon-btn { min-width: 36px; min-height: 36px; }
@@ -7676,4 +7676,132 @@ button:disabled,
   .hz-page-header__title { font-size: 22px !important; }
   .hz-dashboard--employee .hz-dashboard__welcome { min-height: 128px; padding: 18px; }
   .hz-dashboard--employee .hz-dashboard__employee-metric { min-height: 104px; }
+}
+
+/* Phase 2 product contract: shell hierarchy and dashboard information order. */
+.hz-app-shell {
+  background: var(--hz-bg-canvas);
+}
+
+.hz-topbar-context {
+  display: flex;
+  min-width: 148px;
+  flex-direction: column;
+  gap: 1px;
+  margin-left: 8px;
+  padding-left: 16px;
+  border-left: 1px solid rgba(255, 255, 255, 0.16);
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.1;
+}
+
+.hz-topbar-context__eyebrow {
+  color: rgba(255, 255, 255, 0.58);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.hz-topbar-context strong {
+  overflow: hidden;
+  font-size: 13px;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hz-nav-flyout {
+  width: 248px;
+  border: 1px solid rgba(147, 197, 253, 0.2);
+  border-radius: var(--vettri-radius-control);
+  background: var(--vettri-navy);
+  box-shadow: var(--hz-shadow-lg);
+}
+
+.hz-nav-flyout__header {
+  padding: 14px 16px 12px;
+  border-bottom-color: rgba(255, 255, 255, 0.12);
+}
+
+.hz-nav-flyout__header p { color: var(--vettri-white); }
+.hz-nav-flyout__header span { color: rgba(255, 255, 255, 0.58); }
+.hz-flyout-link { min-height: 38px; border-radius: var(--vettri-radius-control) !important; }
+.hz-flyout-link.hz-nav-inactive { color: rgba(255, 255, 255, 0.74); }
+.hz-flyout-link.hz-nav-inactive:hover { background: rgba(255, 255, 255, 0.09); color: var(--vettri-white); }
+.hz-flyout-link.hz-nav-active { background: rgba(23, 105, 255, 0.3); color: var(--vettri-white); }
+
+.hz-rail-item,
+.hz-rail-settings { transition: background var(--vettri-transition-fast), color var(--vettri-transition-fast), box-shadow var(--vettri-transition-fast); }
+.hz-rail-item:hover,
+.hz-rail-settings:hover { background: rgba(255, 255, 255, 0.08); color: var(--vettri-white); }
+.hz-rail-item--active,
+.hz-rail-settings.hz-rail-item--active { background: rgba(23, 105, 255, 0.26) !important; box-shadow: inset 3px 0 0 var(--vettri-primary-blue); }
+.hz-rail-item--selected { background: rgba(255, 255, 255, 0.1); }
+
+.hz-dashboard--admin,
+.hz-dashboard--employee { display: flex; flex-direction: column; gap: 20px !important; }
+.hz-dashboard--admin > .hz-dashboard__welcome { order: 1; }
+.hz-dashboard--admin > .hz-dashboard__metrics { order: 2; }
+.hz-dashboard--admin > .hz-dashboard__primary-grid { order: 3; }
+.hz-dashboard--admin > .hz-dashboard__insights { order: 4; }
+.hz-dashboard--admin > .hz-dashboard__secondary-grid { order: 5; }
+.hz-dashboard--admin > .hz-dashboard__explore { order: 6; }
+.hz-dashboard--admin > .hz-dashboard__support-strip { order: 7; }
+
+.hz-dashboard--admin .hz-dashboard__welcome {
+  min-height: 118px;
+  padding: 24px 28px;
+  border: 1px solid var(--vettri-border);
+  border-left: 4px solid var(--vettri-primary-blue);
+  border-radius: var(--vettri-radius-surface);
+  background: var(--vettri-white);
+  box-shadow: var(--hz-shadow-sm);
+}
+
+.hz-dashboard--admin .hz-dashboard__welcome h1 { font-size: 26px; letter-spacing: 0; }
+.hz-dashboard--admin .hz-dashboard__welcome-mark { border-color: var(--hz-primary-100); background: var(--vettri-soft-blue); color: var(--vettri-primary-blue); }
+.hz-dashboard--admin .hz-dashboard__metric-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0; overflow: hidden; border: 1px solid var(--vettri-border); border-radius: var(--vettri-radius-surface); background: var(--vettri-white); }
+.hz-dashboard--admin .hz-dashboard__metric { min-height: 112px; border: 0; border-right: 1px solid var(--vettri-border); border-radius: 0; box-shadow: none; }
+.hz-dashboard--admin .hz-dashboard__metric:last-child { border-right: 0; }
+.hz-dashboard--admin .hz-dashboard__primary-grid { grid-template-columns: minmax(0, 1.35fr) minmax(280px, 0.65fr); gap: 16px; }
+.hz-dashboard--admin .hz-dashboard__surface { border-radius: var(--vettri-radius-surface); box-shadow: var(--hz-shadow-sm); }
+.hz-dashboard--admin .hz-dashboard__count-badge { background: var(--vettri-soft-blue); border-color: var(--hz-primary-100); color: var(--hz-primary-700); }
+.hz-dashboard--admin .hz-dashboard__explore { padding-top: 4px; border-top: 1px solid var(--vettri-border); }
+.hz-dashboard--admin .hz-dashboard__module-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+.hz-dashboard--employee .hz-dashboard__welcome { background: var(--vettri-navy); border-radius: var(--vettri-radius-surface); box-shadow: 0 12px 28px rgba(11, 35, 66, 0.16); }
+.hz-dashboard--employee .hz-dashboard__quick-actions { border-radius: var(--vettri-radius-surface); box-shadow: var(--hz-shadow-sm); }
+.hz-dashboard--employee .hz-dashboard__quick-actions-list a:first-child { background: var(--vettri-primary-blue); border-color: var(--vettri-primary-blue); color: var(--vettri-white); }
+.hz-dashboard--employee .hz-dashboard__employee-status-grid { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+.hz-dashboard--employee .hz-dashboard__employee-metric { border-radius: var(--vettri-radius-surface); box-shadow: var(--hz-shadow-sm); }
+.hz-dashboard--employee .hz-dashboard__explore { padding-top: 4px; border-top: 1px solid var(--vettri-border); }
+.hz-dashboard--employee .hz-dashboard__module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0; border-top: 1px solid var(--vettri-border); }
+.hz-dashboard--employee .hz-dashboard__module-card { min-height: 78px; border-width: 0 0 1px; border-radius: 0; box-shadow: none; }
+.hz-dashboard--employee .hz-dashboard__module-card:hover { transform: none; background: var(--vettri-soft-blue); }
+
+@media (max-width: 991.98px) {
+  .hz-dashboard--admin .hz-dashboard__metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hz-dashboard--admin .hz-dashboard__metric:nth-child(2) { border-right: 0; }
+  .hz-dashboard--admin .hz-dashboard__metric:nth-child(-n + 2) { border-bottom: 1px solid var(--vettri-border); }
+  .hz-dashboard--admin .hz-dashboard__primary-grid { grid-template-columns: 1fr; }
+  .hz-dashboard--admin .hz-dashboard__module-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .hz-dashboard--employee .hz-dashboard__employee-status-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 767.98px) {
+  .hz-topbar-context { display: none; }
+  .hz-dashboard--admin,
+  .hz-dashboard--employee { gap: 16px !important; }
+  .hz-dashboard--admin .hz-dashboard__welcome { min-height: 108px; padding: 20px 18px; }
+  .hz-dashboard--admin .hz-dashboard__welcome h1 { font-size: 23px; }
+  .hz-dashboard--admin .hz-dashboard__module-grid,
+  .hz-dashboard--employee .hz-dashboard__module-grid { grid-template-columns: 1fr; }
+  .hz-dashboard--employee .hz-dashboard__employee-status-grid { grid-template-columns: 1fr 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hz-rail-item,
+  .hz-rail-settings,
+  .hz-dashboard--employee .hz-dashboard__module-card { transition: none; }
 }

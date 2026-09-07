@@ -11,25 +11,47 @@
  */
 
 :root {
+  /* Canonical Vettri palette. Component-level aliases below keep the
+     existing public token API stable while making the brand contract
+     explicit for the next design phase. */
+  --vettri-navy: #0b2342;
+  --vettri-primary-blue: #1769ff;
+  --vettri-soft-blue: #eef5ff;
+  --vettri-page-background: #f5f8fc;
+  --vettri-white: #ffffff;
+  --vettri-primary-text: #102a43;
+  --vettri-secondary-text: #60758d;
+  --vettri-border: #e2e8f0;
+  --vettri-gold: #d9a441;
+
+  --vettri-space-unit: 0.25rem;
+  --vettri-radius-control: 0.5rem;
+  --vettri-radius-surface: 0.75rem;
+  --vettri-transition-fast: 120ms ease;
+  --vettri-transition-base: 200ms ease;
+   --vettri-sidebar-rail-width: 66px;
+   --vettri-topbar-height: 54px;
+   --vettri-content-max-width: 1400px;
+
   /* ---- Brand palette ---- */
-  --hz-primary-50: #eff6ff;
+  --hz-primary-50: var(--vettri-soft-blue);
   --hz-primary-100: #dbeafe;
   --hz-primary-200: #bfdbfe;
   --hz-primary-300: #93c5fd;
   --hz-primary-400: #60a5fa;
-  --hz-primary-500: #2563eb;
+  --hz-primary-500: var(--vettri-primary-blue);
   --hz-primary-600: #1d4ed8;
   --hz-primary-700: #1e40af;
   --hz-primary-800: #1e3a8a;
-  --hz-primary-900: #0f1b3d;
+  --hz-primary-900: var(--vettri-navy);
 
   /* Premium indigo and gold accents inspired by the product reference. */
-  --hz-brand-indigo-500: #2563eb;
-  --hz-brand-indigo-700: #162653;
-  --hz-brand-indigo-900: #0f1b3d;
-  --hz-brand-gold-400: #f59e0b;
-  --hz-brand-gold-500: #d97706;
-  --hz-brand-lilac-50: #eff6ff;
+  --hz-brand-indigo-500: var(--vettri-primary-blue);
+  --hz-brand-indigo-700: var(--vettri-navy);
+  --hz-brand-indigo-900: var(--vettri-navy);
+  --hz-brand-gold-400: var(--vettri-gold);
+  --hz-brand-gold-500: var(--vettri-gold);
+  --hz-brand-lilac-50: var(--vettri-soft-blue);
   --hz-brand-lilac-100: #dbeafe;
 
   --hz-accent-500: #f97316;
@@ -65,15 +87,15 @@
   --hz-gray-900: #0f172a;
 
   /* ---- Surface / text roles ---- */
-  --hz-bg-canvas: #f6f8fc;
-  --hz-bg-surface: #ffffff;
+  --hz-bg-canvas: var(--vettri-page-background);
+  --hz-bg-surface: var(--vettri-white);
   --hz-bg-surface-hover: var(--hz-gray-50);
-  --hz-bg-sidebar: #0f1b3d;
+  --hz-bg-sidebar: var(--vettri-navy);
   --hz-border-sidebar: #1e3a8a;
-  --hz-border: #e4eaf2;
+  --hz-border: var(--vettri-border);
   --hz-border-strong: var(--hz-gray-300);
-  --hz-text-primary: #172033;
-  --hz-text-secondary: #526176;
+  --hz-text-primary: var(--vettri-primary-text);
+  --hz-text-secondary: var(--vettri-secondary-text);
   /* --hz-gray-400 (#94a3b8) only clears 2.56:1 against white - a real
      WCAG AA failure (needs 4.5:1 for normal text) that would otherwise
      apply everywhere this token is used (timestamps, subtitles, empty-
@@ -119,9 +141,9 @@
   --hz-space-16: 4rem;
 
   /* ---- Radii ---- */
-  --hz-radius-sm: 0.5rem;
-  --hz-radius-md: 0.5rem;
-  --hz-radius-lg: 0.75rem;
+  --hz-radius-sm: var(--vettri-radius-control);
+  --hz-radius-md: var(--vettri-radius-control);
+  --hz-radius-lg: var(--vettri-radius-surface);
   --hz-radius-xl: 0.875rem;
   --hz-radius-full: 9999px;
 
@@ -148,18 +170,18 @@
   --hz-sidebar-width: 256px;
   --hz-sidebar-width-collapsed: 72px;
   --hz-rail-width: 72px;
-  --hz-topbar-height: 54px;
+   --hz-topbar-height: var(--vettri-topbar-height);
   --hz-page-padding: 18px;
   --hz-section-gap: 16px;
   --hz-card-padding: 14px;
   --hz-control-height: 36px;
   --hz-table-row-height: 46px;
   --hz-tab-height: 40px;
-  --hz-content-max-width: 1320px;
+   --hz-content-max-width: var(--vettri-content-max-width);
 
   /* ---- Motion ---- */
-  --hz-transition-fast: 120ms ease;
-  --hz-transition-base: 200ms ease;
+  --hz-transition-fast: var(--vettri-transition-fast);
+  --hz-transition-base: var(--vettri-transition-base);
   --hz-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
