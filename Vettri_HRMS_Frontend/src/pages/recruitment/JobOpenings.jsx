@@ -51,7 +51,7 @@ export default function JobOpenings() {
   }, [openings, status, search]);
 
   return (
-    <div className="d-flex flex-column gap-4">
+    <div className="hz-module-page hz-module-page--recruitment d-flex flex-column gap-4">
       <PageHeader eyebrow="Talent" title="Recruitment" description="Job openings and candidate pipelines" actions={<Button icon={Plus} onClick={() => setShowCreate(true)}>New Requisition</Button>} />
 
       <FilterBar className="justify-content-between">

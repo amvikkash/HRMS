@@ -19,6 +19,7 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
   const administration = sections.find((section) => section.id === 'administration');
   const [flyoutOpen, setFlyoutOpen] = useState(false);
   const [flyoutTop, setFlyoutTop] = useState(12);
+  const flyoutCloseTimer = useRef(null);
 
   // Restore the user's group preferences, then always open the active group
   // so navigation never hides the page they are currently viewing.
@@ -52,12 +53,32 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, [flyoutOpen]);
 
+  useEffect(() => () => clearTimeout(flyoutCloseTimer.current), []);
+
+  function keepFlyoutOpen() {
+    clearTimeout(flyoutCloseTimer.current);
+  }
+
+  function closeFlyoutSoon() {
+    if (window.matchMedia('(max-width: 991px)').matches) return;
+    clearTimeout(flyoutCloseTimer.current);
+    flyoutCloseTimer.current = setTimeout(() => setFlyoutOpen(false), 180);
+  }
+
   function toggleProduct(id, event) {
     setSelectedSectionId(id);
     if (event?.currentTarget && window.matchMedia('(min-width: 992px)').matches) {
       setFlyoutTop(Math.max(12, event.currentTarget.getBoundingClientRect().top));
     }
     setFlyoutOpen((isOpen) => selectedSectionId === id ? !isOpen : true);
+  }
+
+  function openProduct(id, event) {
+    setSelectedSectionId(id);
+    if (event?.currentTarget && window.matchMedia('(min-width: 992px)').matches) {
+      setFlyoutTop(Math.max(12, event.currentTarget.getBoundingClientRect().top));
+    }
+    setFlyoutOpen(true);
   }
 
   return (
@@ -73,6 +94,8 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
         ref={sidebarRef}
         className={`d-flex flex-column hz-sidebar hz-icon-rail ${mobileOpen ? 'hz-sidebar--mobile-open' : ''}`}
         aria-label="Main navigation"
+        onMouseEnter={keepFlyoutOpen}
+        onMouseLeave={closeFlyoutSoon}
       >
         <div
           className="hz-sidebar__header d-flex align-items-center justify-content-between gap-2"
@@ -106,6 +129,10 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
                 aria-label={section.label}
                 aria-expanded={isSelected}
                 title={section.label}
+                onMouseEnter={(event) => {
+                  keepFlyoutOpen();
+                  if (window.matchMedia('(min-width: 992px)').matches) openProduct(section.id, event);
+                }}
               >
                 <Icon size={19} strokeWidth={1.8} />
                 <span>{section.label}</span>
@@ -128,6 +155,10 @@ export default function Sidebar({ mobileOpen = false, onCloseMobile }) {
           aria-label="Settings"
           aria-expanded={selectedSectionId === 'administration' && flyoutOpen}
           title="Settings"
+          onMouseEnter={(event) => {
+            keepFlyoutOpen();
+            if (window.matchMedia('(min-width: 992px)').matches) openProduct('administration', event);
+          }}
         >
           <Settings2 size={19} strokeWidth={1.8} />
         </button>}

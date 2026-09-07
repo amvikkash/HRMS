@@ -24,7 +24,7 @@ export default function MyInterviews() {
   });
 
   return (
-    <div className="d-flex flex-column gap-4">
+    <div className="hz-module-page hz-module-page--interviews d-flex flex-column gap-4">
       <div>
         <h2 style={{ fontSize: 'var(--hz-text-xl)', fontWeight: 700, margin: 0 }}>My Interviews</h2>
         <p style={{ fontSize: 'var(--hz-text-sm)', color: 'var(--hz-text-secondary)', margin: 0 }}>

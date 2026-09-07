@@ -99,7 +99,7 @@ export default function EmployeeList() {
   }
 
   return (
-    <div className="d-flex flex-column gap-4">
+    <div className="hz-module-page hz-module-page--employees d-flex flex-column gap-4">
       <PageHeader
         eyebrow="Workforce"
         title="Employees"

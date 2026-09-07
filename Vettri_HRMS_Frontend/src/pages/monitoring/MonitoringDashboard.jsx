@@ -82,7 +82,7 @@ export default function MonitoringDashboard() {
   ];
 
   return (
-    <div className="d-flex flex-column gap-4">
+    <div className="hz-admin-page hz-admin-page--monitoring d-flex flex-column gap-4">
       <PageHeader eyebrow="Monitoring / Live" title="Workforce pulse" description="Current employee status from agent heartbeats and foreground activity" actions={<span className="text-secondary-hz" style={{ fontSize: 'var(--hz-text-sm)' }}>Updated {devicesUpdatedAt ? timeAgoIST(devicesUpdatedAt) : '—'}</span>} />
 
       <div className="hz-privacy-notice" role="note">

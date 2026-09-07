@@ -25,7 +25,7 @@ export default function Devices() {
   });
 
   return (
-    <div className="d-flex flex-column gap-4">
+    <div className="hz-module-page hz-module-page--attendance-devices d-flex flex-column gap-4">
       <Link to="/attendance" className="d-inline-flex align-items-center gap-1 text-decoration-none" style={{ color: 'var(--hz-text-secondary)', fontSize: 'var(--hz-text-sm)', width: 'fit-content' }}>
         <ArrowLeft size={15} /> Back to Attendance
       </Link>

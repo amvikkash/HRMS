@@ -756,3 +756,23 @@ The first implementation cycle should produce:
 3. A redesigned Reports page using the new system.
 
 Do not begin with decorative gradients or animations. The highest-value improvements are consistency, hierarchy, tables, filters, charts, and clear action prioritization.
+
+## Screenshot-Informed Dashboard Refinement - 2026-09-04
+
+The supplied Keka screenshot was used only as a polish and information-architecture reference. Vettri identity remains authoritative:
+
+- Vettri logo retained.
+- Navy sidebar retained.
+- Blue primary actions retained.
+- Orange/yellow accent retained as a secondary brand accent.
+- Existing employee Quick Actions, Today at a Glance, Workspace groups, routes, APIs, and permissions retained.
+
+Implemented in `src/pages/Dashboard.jsx`:
+
+- Added a real notification-backed Activity section for employee updates.
+- Added derived working-hours information from the employee's existing attendance punches.
+- Increased Today at a Glance density from four to five metrics without fake data.
+- Kept role-aware administrator and employee dashboard branches separate.
+- Kept existing notification, attendance, leave, salary, holiday, asset, and document data sources.
+
+The reference product was not copied: no Keka branding, colors, exact copy, layout, or fake metrics were introduced.

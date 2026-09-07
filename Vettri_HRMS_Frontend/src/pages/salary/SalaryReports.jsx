@@ -52,7 +52,7 @@ export default function SalaryReports() {
   const { overview, departmentDistribution, payrollTrend } = data;
 
   return (
-    <div className="d-flex flex-column gap-4">
+    <div className="hz-module-page hz-module-page--payroll d-flex flex-column gap-4">
       <PageHeader eyebrow="Payroll" title="Salary Reports" description="Payroll cost, trend and department analysis" />
 
       <div className="row g-3">

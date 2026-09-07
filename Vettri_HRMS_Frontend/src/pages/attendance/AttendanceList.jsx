@@ -113,7 +113,7 @@ function AttendanceManagement() {
   const unmappedPunches = liveRecords.filter((record) => !record.mapped).length;
 
   return (
-    <div className="d-flex flex-column gap-4">
+    <div className="hz-module-page hz-module-page--attendance d-flex flex-column gap-4">
       <PageHeader
         eyebrow="Workforce"
         title="Attendance"

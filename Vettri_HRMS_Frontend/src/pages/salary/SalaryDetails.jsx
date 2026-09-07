@@ -68,7 +68,7 @@ export default function SalaryDetails() {
   const structure = data.currentStructure;
 
   return (
-    <div className="d-flex flex-column gap-4">
+    <div className="hz-module-page hz-module-page--payroll d-flex flex-column gap-4">
       {canViewList ? (
         <Link to="/salary/employees" className="d-inline-flex align-items-center gap-1 text-decoration-none" style={{ fontSize: 13, color: 'var(--hz-text-secondary)', width: 'fit-content' }}>
           <ArrowLeft size={14} /> Back to Employee Salary List

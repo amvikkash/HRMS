@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useQuery } from '@tanstack/react-query';
-import { Search, Bell, ChevronDown, LogOut, UserCircle, Clock3, Menu, Building2, Command, ShieldAlert, Zap, Trash2, Sun, Moon } from 'lucide-react';
+import { useNavigate, Link } from 'react-router-dom';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { Search, Bell, ChevronDown, LogOut, UserCircle, Clock3, Menu, Building2, ShieldAlert, Zap, Trash2, Sun, Moon, CheckCheck, Circle, Plus, Users, CalendarDays, Briefcase } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { employeesApi } from '../../api/endpoints/employees';
 import { adminApi } from '../../api/endpoints/admin';
@@ -40,8 +40,10 @@ export default function Topbar({ onOpenMobileNav }) {
   const { user, logout, hasPermission, hasRole, selectedCompanyId, setSelectedCompanyId } = useAuth();
   const { theme, setTheme } = useTheme();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
   const [profileLoading, setProfileLoading] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [commandMode, setCommandMode] = useState(false);
@@ -50,9 +52,13 @@ export default function Topbar({ onOpenMobileNav }) {
   const [searchHistory, setSearchHistory] = useState([]);
   const searchBoxRef = useRef(null);
   const { recentPaths } = useNavMemory();
-  const isEmployee = hasRole('EMPLOYEE');
-  const { data: notifications = [] } = useQuery({ queryKey: ['notifications'], queryFn: selfServiceApi.notifications, enabled: isEmployee });
+  const { data: notifications = [] } = useQuery({ queryKey: ['notifications'], queryFn: selfServiceApi.notifications, enabled: !!user });
   const unreadNotifications = notifications.filter((notification) => !(notification.read_at || notification.readAt)).length;
+  const recentNotifications = notifications.slice(0, 5);
+  const markRead = useMutation({
+    mutationFn: selfServiceApi.markNotificationRead,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
+  });
   const { data: companies = [], isLoading: companiesLoading } = useQuery({
     queryKey: ['admin-companies-selector'],
     queryFn: adminApi.companies,
@@ -135,6 +141,12 @@ export default function Topbar({ onOpenMobileNav }) {
   });
 
   const matchedEmployees = (employeeResults || []).slice(0, 5);
+
+  const quickActions = [
+    hasPermission('EMPLOYEE_CREATE') && { label: 'Open employees', description: 'Add or manage people', icon: Users, to: '/employees' },
+    hasPermission('LEAVE_VIEW') && { label: 'Open leave', description: 'Review requests and balances', icon: CalendarDays, to: '/leave' },
+    hasPermission('RECRUITMENT_VIEW') && { label: 'Open recruitment', description: 'Manage jobs and candidates', icon: Briefcase, to: '/recruitment' },
+  ].filter(Boolean);
 
   const recentItems = useMemo(
     () =>
@@ -399,6 +411,45 @@ export default function Topbar({ onOpenMobileNav }) {
       </div>
 
       <div className="d-flex align-items-center gap-2 ms-auto flex-shrink-0">
+        {quickActions.length > 0 && (
+          <div className="position-relative">
+            <button
+              type="button"
+              className="hz-icon-btn d-flex align-items-center justify-content-center"
+              style={{ width: 40, height: 40 }}
+              onClick={() => setQuickCreateOpen((open) => !open)}
+              aria-label="Quick actions"
+              aria-haspopup="menu"
+              aria-expanded={quickCreateOpen}
+              title="Quick actions"
+            >
+              <Plus size={19} />
+            </button>
+            {quickCreateOpen && (
+              <>
+                <div className="position-fixed top-0 start-0 w-100 h-100" style={{ zIndex: 15 }} onClick={() => setQuickCreateOpen(false)} />
+                <div className="hz-quick-actions hz-surface" role="menu" aria-label="Quick actions">
+                  <div className="hz-quick-actions__header">Quick actions</div>
+                  {quickActions.map(({ label, description, icon: Icon, to }) => (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      key={to}
+                      className="hz-quick-actions__item"
+                      onClick={() => {
+                        setQuickCreateOpen(false);
+                        navigate(to);
+                      }}
+                    >
+                      <span className="hz-quick-actions__icon"><Icon size={16} /></span>
+                      <span><strong>{label}</strong><small>{description}</small></span>
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
         <button type="button" className="hz-icon-btn d-flex align-items-center justify-content-center" style={{ width: 38, height: 38 }} onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} aria-label={theme === 'dark' ? 'Use light theme' : 'Use dark theme'} title={theme === 'dark' ? 'Use light theme' : 'Use dark theme'}>
           {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
@@ -424,23 +475,63 @@ export default function Topbar({ onOpenMobileNav }) {
             <span className="text-truncate">{user.companyName}</span>
           </div>
         )}
-        <button
-          type="button"
-          className="hz-icon-btn position-relative d-flex align-items-center justify-content-center"
-          style={{ width: 38, height: 38 }}
-          aria-label="Notifications"
-          aria-expanded={notificationsOpen}
-          onClick={() => setNotificationsOpen((open) => !open)}
-        >
-          <Bell size={18} />
-          {unreadNotifications > 0 && <span className="hz-notification-dot" aria-label={`${unreadNotifications} unread notification${unreadNotifications === 1 ? '' : 's'}`} />}
-        </button>
-        {notificationsOpen && (
-          <div className="hz-topbar-notifications hz-surface" role="status">
-            <strong>Notifications</strong>
-            <span>{unreadNotifications ? `${unreadNotifications} unread notification${unreadNotifications === 1 ? '' : 's'}` : 'You&apos;re all caught up.'}</span>
-          </div>
-        )}
+        <div className="position-relative">
+          <button
+            type="button"
+            className="hz-icon-btn position-relative d-flex align-items-center justify-content-center"
+            style={{ width: 38, height: 38 }}
+            aria-label="Notifications"
+            aria-haspopup="menu"
+            aria-expanded={notificationsOpen}
+            onClick={() => setNotificationsOpen((open) => !open)}
+          >
+            <Bell size={18} />
+            {unreadNotifications > 0 && <span className="hz-notification-dot" aria-label={`${unreadNotifications} unread notification${unreadNotifications === 1 ? '' : 's'}`} />}
+          </button>
+          {notificationsOpen && (
+            <>
+              <div className="position-fixed top-0 start-0 w-100 h-100" style={{ zIndex: 15 }} onClick={() => setNotificationsOpen(false)} />
+              <div className="hz-topbar-notifications hz-surface" role="menu" aria-label="Notifications">
+                <div className="hz-topbar-notifications__header">
+                  <strong>Notifications</strong>
+                  {unreadNotifications > 0 && <span className="hz-topbar-notifications__count">{unreadNotifications} new</span>}
+                </div>
+                {recentNotifications.length === 0 && (
+                  <div className="hz-topbar-notifications__empty">You&apos;re all caught up.</div>
+                )}
+                {recentNotifications.length > 0 && (
+                  <div className="hz-topbar-notifications__list">
+                    {recentNotifications.map((notification) => {
+                      const isRead = !!(notification.read_at || notification.readAt);
+                      return (
+                        <button
+                          type="button"
+                          role="menuitem"
+                          key={notification.id}
+                          className={`hz-topbar-notifications__item ${isRead ? '' : 'is-unread'}`}
+                          onClick={() => {
+                            if (!isRead) markRead.mutate(notification.id);
+                            setNotificationsOpen(false);
+                            navigate('/notifications');
+                          }}
+                        >
+                          <span className="hz-topbar-notifications__item-icon">{isRead ? <CheckCheck size={14} /> : <Circle size={8} />}</span>
+                          <span className="hz-topbar-notifications__item-copy">
+                            <strong>{notification.title}</strong>
+                            <small>{notification.message}</small>
+                          </span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+                <Link to="/notifications" className="hz-topbar-notifications__viewall" onClick={() => setNotificationsOpen(false)}>
+                  View all notifications
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
 
         <div className="position-relative">
           <button

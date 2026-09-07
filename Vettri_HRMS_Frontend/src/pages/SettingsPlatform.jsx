@@ -31,7 +31,7 @@ export default function SettingsPlatform() {
 
   if (!hasRole('SUPER_ADMIN')) return <EmptyState icon={ShieldCheck} title="Platform administration unavailable" description="Only platform administrators can manage companies and subscriptions." />;
 
-  return <div className="hz-settings-page hz-platform-settings d-flex flex-column gap-4">
+  return <div className="hz-admin-page hz-admin-page--platform hz-settings-page hz-platform-settings d-flex flex-column gap-4">
     <PageHeader eyebrow="Platform" title="Platform Administration" description="Manage tenant accounts and their subscription limits." />
     <Card title={editingCompanyId ? 'Edit company' : 'Add company'} subtitle="Create a tenant before assigning its plan.">
       <form className="row g-3 align-items-end" onSubmit={(event) => { event.preventDefault(); saveCompany.mutate({ ...company, productiveThresholdPercent: Number(company.productiveThresholdPercent), neutralThresholdPercent: Number(company.neutralThresholdPercent) }); }}>

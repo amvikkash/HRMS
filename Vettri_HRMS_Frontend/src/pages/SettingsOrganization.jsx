@@ -21,7 +21,7 @@ export default function SettingsOrganization() {
   const [tab, setTab] = useState('departments');
 
   return (
-    <div className="hz-settings-page d-flex flex-column gap-4">
+    <div className="hz-admin-page hz-admin-page--organization hz-settings-page d-flex flex-column gap-4">
       <PageHeader eyebrow="Settings" title="Organization" description="The structure your employees, teams, and reporting lines are built on" />
 
       <Tabs items={TABS} value={tab} onChange={setTab} />

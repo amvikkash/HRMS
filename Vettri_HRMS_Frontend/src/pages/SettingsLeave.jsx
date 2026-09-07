@@ -19,7 +19,7 @@ export default function SettingsLeave() {
   const [tab, setTab] = useState('types');
 
   return (
-    <div className="hz-settings-page d-flex flex-column gap-4">
+    <div className="hz-admin-page hz-admin-page--leave-settings hz-settings-page d-flex flex-column gap-4">
       <PageHeader eyebrow="Settings" title="Leave Configuration" description="Leave types set default allocations; the holiday calendar keeps leave-day counting accurate" />
 
       <Tabs items={TABS} value={tab} onChange={setTab} />

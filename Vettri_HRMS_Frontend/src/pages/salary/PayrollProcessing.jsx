@@ -116,7 +116,7 @@ export default function PayrollProcessing() {
   }
 
   return (
-    <div className="d-flex flex-column gap-4">
+    <div className="hz-module-page hz-module-page--payroll d-flex flex-column gap-4">
       <PageHeader eyebrow="Payroll" title="Payroll Processing" description="Open, review and run payroll for a pay period" actions={<Button icon={PlusCircle} onClick={() => setShowNewRun(true)}>New Payroll Run</Button>} />
 
       <div className="row g-3">

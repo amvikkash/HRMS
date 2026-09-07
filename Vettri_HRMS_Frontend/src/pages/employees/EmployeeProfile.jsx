@@ -7,6 +7,7 @@ import { attendanceApi, workSessionApi } from '../../api/endpoints/attendance';
 import { documentsApi, DOCUMENT_TYPE_LABEL, MANDATORY_DOCUMENTS } from '../../api/endpoints/documents';
 import { ArrowLeft, Mail, Phone, MapPin, Calendar, Briefcase, Users, ChevronDown, Fingerprint, Pencil, Check, X, CalendarDays, Clock, FileText, Plus, Trash2, AlertTriangle, Network, ClipboardList, Search, Send, UserX, CheckCircle2, PackageOpen } from 'lucide-react';
 import Card from '../../components/ui/Card';
+import Badge from '../../components/ui/Badge';
 import StatusBadge from '../../components/ui/StatusBadge';
 import Avatar from '../../components/ui/Avatar';
 import Button from '../../components/ui/Button';
@@ -23,6 +24,8 @@ import { useAuth } from '../../hooks/useAuth';
 import ApplyLeaveModal from '../leave/ApplyLeaveModal';
 import { selfServiceApi } from '../../api/endpoints/selfService';
 import ErrorBanner from '../../components/ui/ErrorBanner';
+import ConfirmDialog from '../../components/ui/ConfirmDialog';
+import { BarChart, Bar, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 const TABS = [
   { key: 'overview', label: 'Profile', icon: ClipboardList },
@@ -94,12 +97,12 @@ export default function EmployeeProfile() {
   const meta = statusMeta(employee.status);
 
   return (
-    <div className="hz-profile d-flex flex-column gap-4">
+    <div className="hz-profile hz-employee-workspace d-flex flex-column gap-4">
       <Link to={isEmployee ? '/dashboard' : '/employees'} className="d-inline-flex align-items-center gap-1 text-decoration-none" style={{ color: 'var(--hz-text-secondary)', fontSize: 'var(--hz-text-sm)', width: 'fit-content' }}>
         <ArrowLeft size={15} /> {isEmployee ? 'Back to Dashboard' : 'Back to Employees'}
       </Link>
 
-      <Card className="hz-profile__identity-card">
+      <section className="hz-profile-identity-panel">
         <div className="d-flex align-items-start justify-content-between flex-wrap gap-3">
           <div className="d-flex align-items-center gap-3">
             <Avatar name={employee.fullName} size="xl" />
@@ -151,17 +154,12 @@ export default function EmployeeProfile() {
           )}
         </div>
         <div className="hz-profile-summary">
+          <ProfileSummary label="Department" value={employee.departmentName || 'Not set'} />
+          <ProfileSummary label="Manager" value={employee.reportingManagerName || 'Not set'} />
           <ProfileSummary label="Joined" value={employee.dateOfJoining ? new Date(employee.dateOfJoining).toLocaleDateString() : 'Not set'} />
-          <ProfileSummary label="Reports" value={`${employee.directReports?.length || 0} direct reports`} />
           <ProfileSummary label="Employment" value={EMPLOYMENT_TYPE_LABEL[employee.employmentType] || employee.employmentType || 'Not set'} />
         </div>
-        <div className="hz-profile-contact-strip">
-          <ProfileContact icon={Mail} label="Email" value={employee.email} />
-          <ProfileContact icon={Phone} label="Phone" value={employee.phone} />
-          <ProfileContact icon={MapPin} label="Location" value={employee.address} />
-          <ProfileContact icon={Users} label="Department" value={employee.departmentName} />
-        </div>
-      </Card>
+      </section>
 
       <Tabs items={availableTabs} value={tab} onChange={changeTab} />
 
@@ -219,15 +217,20 @@ function OverviewTab({ employee, isEmployee }) {
   });
 
   return (
-    <div className="row g-3">
-      <div className="col-12">
-        <Card title="Account" subtitle="Login access for this employee">
+    <div className="hz-profile-overview">
+      <section className="hz-profile-section hz-profile-account-section">
+        <div className="hz-profile-section__heading">
+          <div><span>Account</span><small>Login access for this employee</small></div>
+          <div className="d-flex align-items-center gap-2 flex-wrap">
+            <Badge variant={accountStatus === 'ACTIVE' ? 'success' : accountStatus === 'DISABLED' ? 'danger' : 'warning'} dot>{accountStatus}</Badge>
+            {!isEmployee && accountStatus !== 'ACTIVE' && accountStatus !== 'DISABLED' && <Button size="sm" icon={Send} loading={sendInvitation.isPending} onClick={() => sendInvitation.mutate()}>{sendInvitation.isPending ? 'Sending' : 'Resend Invitation'}</Button>}
+            {!isEmployee && accountStatus === 'ACTIVE' && <Button size="sm" variant="danger" icon={UserX} loading={disableAccount.isPending} onClick={() => setConfirmDisable(true)}>Disable Account</Button>}
+          </div>
+        </div>
           <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
-            <div><InfoRow icon={Mail} label="Email" value={employee.email} /><InfoRow label="Employee ID" value={employee.employeeCode} /></div>
-            <div className="d-flex align-items-center gap-2 flex-wrap">
-              <Badge variant={accountStatus === 'ACTIVE' ? 'success' : accountStatus === 'DISABLED' ? 'danger' : 'warning'} dot>{accountStatus}</Badge>
-              {!isEmployee && accountStatus !== 'ACTIVE' && accountStatus !== 'DISABLED' && <Button size="sm" icon={Send} loading={sendInvitation.isPending} onClick={() => sendInvitation.mutate()}>{sendInvitation.isPending ? 'Sending' : 'Resend Invitation'}</Button>}
-              {!isEmployee && accountStatus === 'ACTIVE' && <Button size="sm" variant="danger" icon={UserX} loading={disableAccount.isPending} onClick={() => setConfirmDisable(true)}>Disable Account</Button>}
+            <div className="hz-profile-info-grid hz-profile-info-grid--two">
+              <InfoRow icon={Mail} label="Email" value={employee.email} />
+              <InfoRow label="Employee ID" value={employee.employeeCode} />
             </div>
           </div>
           {(sendInvitation.isError || disableAccount.isError) && <div className="mt-3 text-danger small">{sendInvitation.error?.response?.data?.message || disableAccount.error?.response?.data?.message || 'Account action failed.'}</div>}
@@ -240,36 +243,27 @@ function OverviewTab({ employee, isEmployee }) {
             loading={disableAccount.isPending}
             onConfirm={() => disableAccount.mutate(undefined, { onSuccess: () => setConfirmDisable(false) })}
           />
-        </Card>
-      </div>
-      <div className="col-12 col-lg-6">
-        <Card title="Contact">
-          <InfoRow icon={Mail} label="Email" value={employee.email} />
-          <InfoRow icon={Phone} label="Phone" value={employee.phone} />
-          <InfoRow icon={MapPin} label="Address" value={employee.address} />
-        </Card>
-      </div>
-      <div className="col-12 col-lg-6">
-        <Card title="Employment">
-          <InfoRow icon={Calendar} label="Date of Joining" value={employee.dateOfJoining ? new Date(employee.dateOfJoining).toLocaleDateString() : null} />
-          <InfoRow icon={Briefcase} label="Employment Type" value={EMPLOYMENT_TYPE_LABEL[employee.employmentType] || employee.employmentType} />
-          <InfoRow icon={Users} label="Team" value={employee.teamName} />
-        </Card>
-      </div>
-      <div className="col-12 col-lg-6">
-        <Card title="Personal">
-          <InfoRow icon={Calendar} label="Date of Birth" value={employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString() : null} />
-          <InfoRow label="Gender" value={employee.gender} />
-        </Card>
-      </div>
-      <div className="col-12 col-lg-6">
-        <Card title="Emergency Contact">
-          <InfoRow label="Name" value={employee.emergencyContactName} />
-          <InfoRow icon={Phone} label="Phone" value={employee.emergencyContactPhone} />
-        </Card>
-      </div>
-      {!isEmployee && <div className="col-12 col-lg-6">
-        <Card title="Biometric Enrollment" subtitle="The PIN this employee is enrolled under on the fingerprint device">
+      </section>
+      <ProfileInfoSection title="Personal information">
+        <InfoRow icon={Mail} label="Email" value={employee.email} />
+        <InfoRow icon={Phone} label="Phone" value={employee.phone} />
+        <InfoRow icon={MapPin} label="Location" value={employee.address} />
+        <InfoRow icon={Calendar} label="Date of birth" value={employee.dateOfBirth ? new Date(employee.dateOfBirth).toLocaleDateString() : null} />
+        <InfoRow label="Gender" value={employee.gender} />
+      </ProfileInfoSection>
+      <ProfileInfoSection title="Employment">
+        <InfoRow icon={Calendar} label="Joined" value={employee.dateOfJoining ? new Date(employee.dateOfJoining).toLocaleDateString() : null} />
+        <InfoRow icon={Briefcase} label="Employment type" value={EMPLOYMENT_TYPE_LABEL[employee.employmentType] || employee.employmentType} />
+        <InfoRow icon={Users} label="Department" value={employee.departmentName} />
+        <InfoRow icon={Users} label="Team" value={employee.teamName} />
+        <InfoRow icon={Users} label="Reports to" value={employee.reportingManagerName} />
+      </ProfileInfoSection>
+      <ProfileInfoSection title="Emergency contact">
+        <InfoRow label="Name" value={employee.emergencyContactName} />
+        <InfoRow icon={Phone} label="Phone" value={employee.emergencyContactPhone} />
+      </ProfileInfoSection>
+      {!isEmployee && <section className="hz-profile-section hz-profile-biometric-section">
+        <div className="hz-profile-section__heading"><div><span>Biometric enrollment</span><small>The PIN used on the fingerprint device</small></div></div>
           <div className="d-flex align-items-center gap-2 py-2">
             <Fingerprint size={15} style={{ color: 'var(--hz-text-muted)', flexShrink: 0 }} />
             {editingBiometric ? (
@@ -300,10 +294,13 @@ function OverviewTab({ employee, isEmployee }) {
               </>
             )}
           </div>
-        </Card>
-      </div>}
+      </section>}
     </div>
   );
+}
+
+function ProfileInfoSection({ title, children }) {
+  return <section className="hz-profile-section"><div className="hz-profile-section__heading"><div><span>{title}</span></div></div><div className="hz-profile-info-grid">{children}</div></section>;
 }
 
 function JobTab({ employee }) {
@@ -700,64 +697,91 @@ function LeaveTab({ employee }) {
     queryKey: ['leave-requests-employee', String(employee.id)],
     queryFn: () => leaveRequestsApi.byEmployee(employee.id),
   });
+  const leaveBalances = Array.isArray(balances) ? balances : [];
+  const leaveRequests = Array.isArray(requests) ? requests : [];
+  const pendingRequests = leaveRequests.filter((request) => request.status === 'PENDING').length;
+  const totalRemaining = leaveBalances.reduce((total, balance) => total + (balance.remainingDays || 0), 0);
+  const nextRequest = leaveRequests
+    .filter((request) => request.startDate >= new Date().toISOString().slice(0, 10))
+    .sort((first, second) => first.startDate.localeCompare(second.startDate))[0];
+  const leaveChartData = leaveBalances.map((balance) => ({
+    name: balance.leaveTypeName,
+    available: balance.remainingDays || 0,
+    consumed: balance.usedDays || 0,
+  }));
 
   return (
-    <div className="row g-3">
-      <div className="col-12 col-lg-5">
-        <Card title="Leave balance" subtitle={`${year}`} actions={<Button size="sm" icon={Plus} onClick={() => setShowApply(true)}>Apply leave</Button>}>
-          {balancesLoading && <SkeletonText lines={3} />}
-          {!balancesLoading && balances?.length === 0 && <EmptyState title="No leave types configured" />}
-          {!balancesLoading &&
-            balances?.map((b) => (
-              <div key={b.leaveTypeId} className="py-2" style={{ borderBottom: '1px solid var(--hz-border)' }}>
-                <div className="d-flex justify-content-between mb-1">
-                  <span style={{ fontSize: 'var(--hz-text-sm)', fontWeight: 500 }}>{b.leaveTypeName}</span>
-                  <span style={{ fontSize: 'var(--hz-text-sm)', color: 'var(--hz-text-secondary)' }}>
-                    {b.remainingDays} / {b.allocatedDays + b.carriedForwardDays}
-                  </span>
-                </div>
-                <div style={{ height: 6, borderRadius: 999, background: 'var(--hz-gray-100)' }}>
-                  <div
-                    style={{
-                      height: 6,
-                      borderRadius: 999,
-                      width: `${Math.min(100, Math.round((b.usedDays / (b.allocatedDays + b.carriedForwardDays || 1)) * 100))}%`,
-                      background: 'var(--hz-primary-500)',
-                    }}
-                  />
-                </div>
-              </div>
-            ))}
-        </Card>
-      </div>
-      <div className="col-12 col-lg-7">
-        <Card title="Request History">
-          {requestsLoading && <SkeletonText lines={4} />}
-          {!requestsLoading && requests?.length === 0 && (
-            <EmptyState icon={CalendarDays} title="No leave requests yet" />
-          )}
-          {!requestsLoading && requests?.length > 0 && (
-            <div className="d-flex flex-column gap-3">
-              {requests.map((r) => {
-                const meta = leaveStatusMeta(r.status);
-                return (
-                  <div key={r.id} className="d-flex align-items-center justify-content-between">
-                    <div>
-                      <div style={{ fontSize: 'var(--hz-text-sm)', fontWeight: 600 }}>{r.leaveTypeName}</div>
-                      <div style={{ fontSize: 12, color: 'var(--hz-text-muted)' }}>
-                        {new Date(r.startDate).toLocaleDateString()} – {new Date(r.endDate).toLocaleDateString()} · {r.days} day(s)
-                      </div>
-                    </div>
-                    <Badge variant={meta.variant} dot>
-                      {meta.label}
-                    </Badge>
+    <div className="hz-employee-leave">
+      <section className="hz-employee-leave__overview" aria-labelledby="leave-overview-title">
+        <div>
+          <span className="hz-dashboard__section-kicker">Time away</span>
+          <h2 id="leave-overview-title">Leave overview</h2>
+          <p>{year} balance and request history</p>
+        </div>
+        <div className="hz-employee-leave__overview-stats">
+          <div><span>Available</span><strong>{balancesLoading ? '—' : `${totalRemaining} days`}</strong></div>
+          <div><span>Pending</span><strong>{requestsLoading ? '—' : pendingRequests}</strong></div>
+          <div><span>Next request</span><strong>{nextRequest ? new Date(nextRequest.startDate).toLocaleDateString() : 'None'}</strong></div>
+        </div>
+        <Button size="sm" icon={Plus} onClick={() => setShowApply(true)}>Apply leave</Button>
+      </section>
+
+      <section className="hz-employee-leave__balances" aria-labelledby="leave-balances-title">
+        <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Entitlement</span><h2 id="leave-balances-title">Leave balances</h2></div><span className="hz-employee-leave__year">{year}</span></div>
+        {balancesLoading && <SkeletonText lines={3} />}
+        {!balancesLoading && leaveBalances.length === 0 && <EmptyState title="No leave types configured" />}
+        {!balancesLoading && leaveBalances.length > 0 && (
+          <div className="hz-employee-leave__balance-grid">
+            {leaveBalances.map((balance) => {
+              const quota = balance.allocatedDays + balance.carriedForwardDays;
+              const usedPercent = Math.min(100, Math.round((balance.usedDays / (quota || 1)) * 100));
+              return <article className="hz-employee-leave__balance" key={balance.leaveTypeId}>
+                <header><strong>{balance.leaveTypeName}</strong><span>View details</span></header>
+                <div className="hz-employee-leave__balance-visual">
+                  <div className="hz-employee-leave__balance-ring" style={{ '--hz-leave-used': `${usedPercent}%` }}>
+                    <div><strong>{balance.remainingDays}</strong><small>days<br />available</small></div>
                   </div>
-                );
-              })}
-            </div>
-          )}
-        </Card>
-      </div>
+                  <div className="hz-employee-leave__balance-summary"><span>Usage</span><strong>{usedPercent}%</strong><small>{balance.usedDays || 0} of {quota} days</small></div>
+                </div>
+                <div className="hz-employee-leave__progress"><span style={{ width: `${usedPercent}%` }} /></div>
+                <div className="hz-employee-leave__balance-stats"><span>Available<strong>{balance.remainingDays} days</strong></span><span>Consumed<strong>{balance.usedDays || 0} days</strong></span><span>Annual quota<strong>{quota || 0} days</strong></span><span>Carried forward<strong>{balance.carriedForwardDays || 0} days</strong></span></div>
+              </article>;
+            })}
+          </div>
+        )}
+      </section>
+
+      <section className="hz-employee-leave__analytics" aria-labelledby="leave-analytics-title">
+        <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Plan your time</span><h2 id="leave-analytics-title">Leave usage</h2></div><span className="hz-employee-leave__chart-note">Available vs consumed</span></div>
+        {leaveChartData.length > 0 ? <div className="hz-employee-leave__chart">
+          <ResponsiveContainer width="100%" height={220}>
+            <BarChart data={leaveChartData} margin={{ top: 12, right: 12, left: -18, bottom: 8 }} barGap={8}>
+              <CartesianGrid vertical={false} stroke="var(--hz-border)" strokeDasharray="3 3" />
+              <XAxis dataKey="name" tick={{ fill: 'var(--hz-text-secondary)', fontSize: 11 }} tickLine={false} axisLine={false} />
+              <YAxis allowDecimals={false} tick={{ fill: 'var(--hz-text-muted)', fontSize: 11 }} tickLine={false} axisLine={false} />
+              <Tooltip cursor={{ fill: 'var(--hz-primary-50)' }} contentStyle={{ border: '1px solid var(--hz-border)', borderRadius: 8, fontSize: 12 }} />
+              <Bar dataKey="available" name="Available" fill="var(--hz-primary-500)" radius={[4, 4, 0, 0]} />
+              <Bar dataKey="consumed" name="Consumed" fill="var(--hz-accent-500)" radius={[4, 4, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div> : <div className="hz-employee-leave__chart-empty"><CalendarDays size={20} /><span>Leave usage will appear here when leave types are configured.</span></div>}
+      </section>
+
+      <section className="hz-employee-leave__history" aria-labelledby="leave-history-title">
+        <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Requests</span><h2 id="leave-history-title">Leave history</h2></div></div>
+        {requestsLoading && <SkeletonText lines={4} />}
+        {!requestsLoading && leaveRequests.length === 0 && <EmptyState icon={CalendarDays} title="No leave requests yet" description="Apply for leave to start your request history." />}
+        {!requestsLoading && leaveRequests.length > 0 && <div className="hz-employee-leave__request-list">
+          {leaveRequests.map((request) => {
+            const meta = leaveStatusMeta(request.status);
+            return <div key={request.id} className="hz-employee-leave__request">
+              <div className="hz-employee-leave__request-date"><strong>{new Date(request.startDate).toLocaleDateString(undefined, { day: '2-digit' })}</strong><span>{new Date(request.startDate).toLocaleDateString(undefined, { month: 'short' })}</span></div>
+              <div className="hz-employee-leave__request-copy"><strong>{request.leaveTypeName}</strong><span>{new Date(request.startDate).toLocaleDateString()} - {new Date(request.endDate).toLocaleDateString()} · {request.days} day(s)</span></div>
+              <Badge variant={meta.variant} dot>{meta.label}</Badge>
+            </div>;
+          })}
+        </div>}
+      </section>
       {showApply && <ApplyLeaveModal defaultEmployeeId={employee.id} onClose={() => setShowApply(false)} />}
     </div>
   );

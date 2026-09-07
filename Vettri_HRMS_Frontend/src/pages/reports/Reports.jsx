@@ -221,7 +221,7 @@ export default function Reports() {
   }
 
   return (
-    <div className="d-flex flex-column gap-4">
+    <div className="hz-admin-page hz-admin-page--reports d-flex flex-column gap-4">
       <PageHeader
         eyebrow="Insights"
         title="Reports & Analytics"

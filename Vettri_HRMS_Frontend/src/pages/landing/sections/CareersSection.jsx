@@ -1,54 +1,15 @@
+import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { MapPin, Briefcase, ArrowRight, Clock3 } from 'lucide-react';
 import { useReveal } from '../useReveal';
+import { careersApi } from '../../../api/endpoints/recruitment';
 
-/**
- * Placeholder openings for the landing page preview.
- *
- * TODO(Recruitment module): replace this constant with data from
- * `careersApi.listOpenJobs()` (see `src/api/endpoints/recruitment.js`,
- * already implemented and used by the full listing at `/careers`). Keep the
- * same shape - { id, title, departmentName, location, employmentType,
- * openingsCount } - and this section needs no other changes; slice the
- * result to the first 3-4 jobs for the preview.
- */
-const SAMPLE_JOBS = [
-  {
-    id: 'sample-1',
-    title: 'Senior Frontend Engineer',
-    departmentName: 'Engineering',
-    location: 'Bengaluru',
-    employmentType: 'FULL_TIME',
-    openingsCount: 2,
-  },
-  {
-    id: 'sample-2',
-    title: 'HR Business Partner',
-    departmentName: 'People Operations',
-    location: 'Remote',
-    employmentType: 'FULL_TIME',
-    openingsCount: 1,
-  },
-  {
-    id: 'sample-3',
-    title: 'Product Designer',
-    departmentName: 'Design',
-    location: 'Bengaluru',
-    employmentType: 'FULL_TIME',
-    openingsCount: 1,
-  },
-  {
-    id: 'sample-4',
-    title: 'Enterprise Account Executive',
-    departmentName: 'Sales',
-    location: 'Mumbai',
-    employmentType: 'FULL_TIME',
-    openingsCount: 3,
-  },
-];
-
-export default function CareersSection({ jobs = SAMPLE_JOBS }) {
+export default function CareersSection() {
   const heading = useReveal();
+  const { data: jobs, isLoading } = useQuery({ queryKey: ['careers-jobs-preview'], queryFn: careersApi.listOpenJobs });
+  const preview = (jobs || []).slice(0, 4);
+
+  if (!isLoading && preview.length === 0) return null;
 
   return (
     <section id="careers" className="hz-section" style={{ background: 'var(--hz-bg-surface)' }}>
@@ -58,7 +19,7 @@ export default function CareersSection({ jobs = SAMPLE_JOBS }) {
             <span className="hz-eyebrow">Careers</span>
             <h2 style={{ fontSize: 'var(--hz-text-3xl)', fontWeight: 700, marginBottom: 10 }}>Join our team</h2>
             <p className="text-secondary-hz mb-0" style={{ fontSize: 'var(--hz-text-base)', maxWidth: 480 }}>
-              We're growing across engineering, people operations, design, and sales.
+              We're hiring across engineering, people operations, design, and sales.
             </p>
           </div>
           <Link to="/careers" className="btn btn-outline-secondary d-inline-flex align-items-center gap-2">
@@ -67,9 +28,13 @@ export default function CareersSection({ jobs = SAMPLE_JOBS }) {
         </div>
 
         <div className="row g-4">
-          {jobs.map((job, i) => (
-            <JobCard key={job.id} job={job} delay={i * 60} />
-          ))}
+          {isLoading
+            ? Array.from({ length: 4 }).map((_, i) => (
+                <div className="col-12 col-md-6 col-lg-3" key={i}>
+                  <div className="hz-job-card hz-job-card--loading" aria-hidden="true" />
+                </div>
+              ))
+            : preview.map((job, i) => <JobCard key={job.id} job={job} delay={i * 60} />)}
         </div>
       </div>
     </section>

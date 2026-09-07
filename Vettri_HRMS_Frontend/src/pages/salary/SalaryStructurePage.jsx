@@ -32,7 +32,7 @@ export default function SalaryStructurePage() {
   const filteredEmployees = useMemo(() => employees, [employees]);
 
   return (
-    <div className="d-flex flex-column gap-4">
+    <div className="hz-module-page hz-module-page--payroll d-flex flex-column gap-4">
       <div>
         <h1 style={{ fontSize: 'var(--hz-text-2xl)', fontWeight: 700, marginBottom: 4 }}>Salary Structure</h1>
         <p className="text-secondary-hz mb-0" style={{ fontSize: 'var(--hz-text-sm)' }}>

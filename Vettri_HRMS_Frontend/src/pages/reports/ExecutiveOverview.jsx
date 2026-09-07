@@ -59,7 +59,7 @@ export default function ExecutiveOverview() {
   const attendanceRate = att.totalActiveEmployees > 0 ? Math.round((att.uniqueEmployeesPunched / att.totalActiveEmployees) * 100) : null;
 
   return (
-    <div className="d-flex flex-column gap-4">
+    <div className="hz-admin-page hz-admin-page--executive d-flex flex-column gap-4">
       <div className="d-flex align-items-center justify-content-between flex-wrap gap-2">
         <div>
           <h1 style={{ fontSize: 'var(--hz-text-2xl)', fontWeight: 700 }}>Executive Overview</h1>

@@ -44,14 +44,27 @@ h6 {
 
 .hz-main-content {
   min-width: 0;
-  padding: 16px 20px 28px;
+  padding: 24px 28px 40px;
 }
 
 .hz-main-content > * {
   width: 100%;
-  max-width: 1320px;
+  max-width: var(--hz-content-max-width);
   margin-right: auto;
   margin-left: auto;
+}
+
+.hz-main-content > .hz-page-shell,
+.hz-main-content > .hz-dashboard,
+.hz-main-content > .hz-payroll,
+.hz-main-content > .hz-pipeline {
+  max-width: var(--hz-content-max-width);
+}
+
+@media (max-width: 767.98px) {
+  .hz-main-content {
+    padding: 16px 14px 28px;
+  }
 }
 
 ::selection {

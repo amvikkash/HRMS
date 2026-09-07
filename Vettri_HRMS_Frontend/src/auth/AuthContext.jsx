@@ -26,12 +26,6 @@ export function AuthProvider({ children }) {
       }
       try {
         const me = await authApi.me();
-        console.log('[AUTH DEBUG - Session Restore]', {
-          role: me?.role || me?.roles?.[0],
-          roles: me?.roles,
-          permissions: me?.permissions,
-          hasMonitoringView: me?.permissions?.includes('MONITORING_VIEW'),
-        });
         setUser(me);
         if (!me?.roles?.includes('SUPER_ADMIN')) setSelectedCompanyId(null);
       } catch {
@@ -50,12 +44,6 @@ export function AuthProvider({ children }) {
 
   const login = useCallback(async (username, password) => {
     const data = await authApi.login(username, password);
-    console.log('[AUTH DEBUG - Login Response]', {
-      role: data.user?.role || data.user?.roles?.[0],
-      roles: data.user?.roles,
-      permissions: data.user?.permissions,
-      hasMonitoringView: data.user?.permissions?.includes('MONITORING_VIEW'),
-    });
     tokenStorage.setTokens(data.accessToken || data.token, data.refreshToken);
     tenantStorage.clear();
     setSelectedCompanyIdState(null);

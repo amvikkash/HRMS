@@ -78,7 +78,7 @@ export default function EmployeeSalaryList() {
   );
 
   return (
-    <div className="d-flex flex-column gap-4">
+    <div className="hz-module-page hz-module-page--payroll d-flex flex-column gap-4">
       <div className="d-flex flex-wrap align-items-center justify-content-between gap-2">
         <div>
           <h1 style={{ fontSize: 'var(--hz-text-2xl)', fontWeight: 700, marginBottom: 4 }}>Employee Salary</h1>

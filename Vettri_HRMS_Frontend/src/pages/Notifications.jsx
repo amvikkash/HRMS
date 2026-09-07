@@ -1,6 +1,8 @@
 import { Bell, CheckCheck, Circle } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import EmptyState from '../components/ui/EmptyState';
+import ErrorState from '../components/ui/ErrorState';
+import { SkeletonText } from '../components/ui/Skeleton';
 import PageShell from '../components/ui/PageShell';
 import SectionHeader from '../components/ui/SectionHeader';
 import { selfServiceApi } from '../api/endpoints/selfService';
@@ -15,12 +17,17 @@ export default function Notifications() {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
   });
   const items = Array.isArray(notifications) ? notifications : [];
+  const unreadCount = items.filter((n) => !(n.read_at || n.readAt)).length;
 
   return (
     <PageShell className="d-flex flex-column gap-4">
-      <SectionHeader eyebrow="Employee services" title="Notifications" description="Updates and actions related to your employee account" />
-      {isError && <div className="hz-inline-error" role="alert">Could not load notifications. <button type="button" className="btn btn-link btn-sm p-0 align-baseline" onClick={refetch}>Try again</button></div>}
-      {isLoading && <div className="hz-self-service-list"><div className="hz-self-service-list__row">Loading your notifications...</div></div>}
+      <SectionHeader
+        eyebrow="Employee services"
+        title="Notifications"
+        description={unreadCount > 0 ? `${unreadCount} unread update${unreadCount === 1 ? '' : 's'}` : 'Updates and actions related to your employee account'}
+      />
+      {isError && <ErrorState description="Couldn't load your notifications." onRetry={refetch} />}
+      {isLoading && <div className="hz-self-service-list p-3"><SkeletonText lines={4} /></div>}
       {!isLoading && !isError && items.length === 0 && <EmptyState icon={Bell} title="You&apos;re all caught up" description="Important updates will appear here when they are available." />}
       {!isLoading && !isError && items.length > 0 && <div className="hz-self-service-list" aria-label="Notifications">
         {items.map((notification) => <button type="button" className={`hz-self-service-list__row hz-notification-row ${notification.read_at || notification.readAt ? '' : 'is-unread'}`} key={notification.id} onClick={() => !(notification.read_at || notification.readAt) && markRead.mutate(notification.id)}>

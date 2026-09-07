@@ -26,7 +26,7 @@ export default function PerformanceHub() {
   const [tab, setTab] = useState('goals');
 
   return (
-    <div className="hz-performance d-flex flex-column gap-4">
+    <div className="hz-module-page hz-module-page--performance hz-performance d-flex flex-column gap-4">
       <PageHeader eyebrow="Talent" title="Performance" description="Goals, reviews, and feedback" />
 
       <Tabs items={TABS} value={tab} onChange={setTab} />

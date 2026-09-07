@@ -46,7 +46,7 @@ export default function MonitoringReports() {
     { key: 'classification', label: 'Class', render: (row) => row.productivityClassification || '—' },
   ];
 
-  return <div className="d-flex flex-column gap-4">
+  return <div className="hz-admin-page hz-admin-page--monitoring-reports d-flex flex-column gap-4">
     <div><h1 style={{ fontSize: 'var(--hz-text-2xl)', fontWeight: 700 }}>Monitoring Reports</h1><p className="text-secondary-hz mb-0">Productivity and management views from recorded agent activity.</p></div>
     <Card><div className="d-flex align-items-end gap-3 flex-wrap">
       <label className="form-label mb-0">From<input className="form-control" type="date" value={filters.startDate} onChange={(event) => setFilters({ ...filters, startDate: event.target.value })} /></label>

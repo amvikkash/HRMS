@@ -3,8 +3,9 @@ import { useAuth } from '../../hooks/useAuth';
 import PageLoader from '../../components/ui/PageLoader';
 import HeroSection from './sections/HeroSection';
 import AboutSection from './sections/AboutSection';
-import ContactSection from './sections/ContactSection';
 import TrustSection from './sections/TrustSection';
+import CareersSection from './sections/CareersSection';
+import ContactSection from './sections/ContactSection';
 
 export default function Home() {
   const { isAuthenticated, isLoading } = useAuth();
@@ -23,6 +24,7 @@ export default function Home() {
       <HeroSection />
       <AboutSection />
       <TrustSection />
+      <CareersSection />
       <ContactSection />
     </>
   );

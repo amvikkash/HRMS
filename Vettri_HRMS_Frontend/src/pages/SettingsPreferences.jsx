@@ -17,7 +17,7 @@ export default function SettingsPreferences() {
   const update = (key, value) => setPreferences((current) => ({ ...current, [key]: value }));
 
   return (
-    <PageShell className="d-flex flex-column gap-4">
+    <PageShell className="hz-admin-page hz-admin-page--preferences d-flex flex-column gap-4">
       <SectionHeader eyebrow="Preferences" title="Workspace preferences" description="Personalize how Vettri HRMS looks and presents regional information." />
       <Card title="Appearance" subtitle="Your preference is saved on this device.">
         <label className="hz-preference-row"><span><strong>Theme</strong><small>Choose the most comfortable workspace appearance.</small></span><select value={theme} onChange={(event) => setTheme(event.target.value)} aria-label="Theme"><option value="light">Light</option><option value="dark">Dark</option></select></label>

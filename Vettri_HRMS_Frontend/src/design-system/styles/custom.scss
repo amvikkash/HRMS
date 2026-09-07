@@ -6,28 +6,28 @@
 // ==========================================================
 
 // ---- Color system ----
-$primary: #1d4ed8;
+$primary: #2563eb;
 $secondary: #526176;
 $success: #16a34a;
 $info: #0284c7;
 $warning: #d97706;
 $danger: #dc2626;
-$light: #f4f7fb;
+$light: #f6f8fc;
 $dark: #172033;
 
 // ---- Typography ----
-$font-family-sans-serif: 'Manrope', 'Avenir Next', 'Segoe UI', sans-serif;
+$border-color: #e4eaf2;
 $font-size-base: 0.9375rem;
 $line-height-base: 1.55;
 $headings-font-weight: 600;
-$font-weight-bold: 600;
+$border-radius-sm: 0.5rem;
 
 // ---- Radii - soft, rounded, never sharp corners ----
 $border-radius: 0.5rem;
 $border-radius-sm: 0.3rem;
 $border-radius-lg: 0.75rem;
 $border-radius-xl: 1rem;
-$border-radius-pill: 50rem;
+$card-border-radius: 0.75rem;
 
 // ---- Borders ----
 $border-color: #e5eaf1;
