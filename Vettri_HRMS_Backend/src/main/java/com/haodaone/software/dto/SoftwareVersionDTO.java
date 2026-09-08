@@ -10,6 +10,7 @@ public class SoftwareVersionDTO {
     private String architecture;
     private SoftwareInstallerType installerType;
     private String installerUrl;
+    private String packageStorageKey;
     private String checksumSha256;
     private Long fileSizeBytes;
     private String silentInstallArguments;
@@ -21,6 +22,7 @@ public class SoftwareVersionDTO {
         private String architecture;
         private SoftwareInstallerType installerType;
         private String installerUrl;
+        private String packageStorageKey;
         private String checksumSha256;
         private Long fileSizeBytes;
         private String silentInstallArguments;
@@ -35,6 +37,8 @@ public class SoftwareVersionDTO {
         public void setInstallerType(SoftwareInstallerType installerType) { this.installerType = installerType; }
         public String getInstallerUrl() { return installerUrl; }
         public void setInstallerUrl(String installerUrl) { this.installerUrl = installerUrl; }
+        public String getPackageStorageKey() { return packageStorageKey; }
+        public void setPackageStorageKey(String packageStorageKey) { this.packageStorageKey = packageStorageKey; }
         public String getChecksumSha256() { return checksumSha256; }
         public void setChecksumSha256(String checksumSha256) { this.checksumSha256 = checksumSha256; }
         public Long getFileSizeBytes() { return fileSizeBytes; }
@@ -56,6 +60,7 @@ public class SoftwareVersionDTO {
         dto.setArchitecture(entity.getArchitecture());
         dto.setInstallerType(entity.getInstallerType());
         dto.setInstallerUrl(entity.getInstallerUrl());
+        dto.setPackageStorageKey(entity.getPackageStorageKey());
         dto.setChecksumSha256(entity.getChecksumSha256());
         dto.setFileSizeBytes(entity.getFileSizeBytes());
         dto.setSilentInstallArguments(entity.getSilentInstallArguments());
@@ -76,6 +81,8 @@ public class SoftwareVersionDTO {
     public void setInstallerType(SoftwareInstallerType installerType) { this.installerType = installerType; }
     public String getInstallerUrl() { return installerUrl; }
     public void setInstallerUrl(String installerUrl) { this.installerUrl = installerUrl; }
+    public String getPackageStorageKey() { return packageStorageKey; }
+    public void setPackageStorageKey(String packageStorageKey) { this.packageStorageKey = packageStorageKey; }
     public String getChecksumSha256() { return checksumSha256; }
     public void setChecksumSha256(String checksumSha256) { this.checksumSha256 = checksumSha256; }
     public Long getFileSizeBytes() { return fileSizeBytes; }

@@ -8,6 +8,7 @@ import com.haodaone.company.repository.CompanyRepository;
 import com.haodaone.monitoring.entity.MonitoredDevice;
 import com.haodaone.monitoring.repository.MonitoredDeviceRepository;
 import com.haodaone.software.dto.SoftwareDeploymentDTO;
+import com.haodaone.software.dto.SoftwareDeploymentTargetDTO;
 import com.haodaone.software.dto.AgentSoftwareJobDTO;
 import com.haodaone.software.dto.AgentSoftwareStatusRequest;
 import com.haodaone.software.dto.SoftwarePackageDTO;
@@ -17,10 +18,11 @@ import com.haodaone.software.repository.*;
 import com.haodaone.tenant.TenantContext;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Objects;
+import java.util.HashSet;
 
 @Service
 public class SoftwareManagementService {
@@ -32,6 +34,7 @@ public class SoftwareManagementService {
     private final MonitoredDeviceRepository monitoredDeviceRepository;
     private final CompanyRepository companyRepository;
     private final AuditLogService auditLogService;
+    private final SoftwarePackageStorageService packageStorageService;
 
     public SoftwareManagementService(SoftwarePackageRepository packageRepository,
                                     SoftwareVersionRepository versionRepository,
@@ -39,7 +42,8 @@ public class SoftwareManagementService {
                                     SoftwareDeploymentTargetRepository deploymentTargetRepository,
                                     MonitoredDeviceRepository monitoredDeviceRepository,
                                     CompanyRepository companyRepository,
-                                    AuditLogService auditLogService) {
+                                    AuditLogService auditLogService,
+                                    SoftwarePackageStorageService packageStorageService) {
         this.packageRepository = packageRepository;
         this.versionRepository = versionRepository;
         this.deploymentRepository = deploymentRepository;
@@ -47,6 +51,7 @@ public class SoftwareManagementService {
         this.monitoredDeviceRepository = monitoredDeviceRepository;
         this.companyRepository = companyRepository;
         this.auditLogService = auditLogService;
+        this.packageStorageService = packageStorageService;
     }
 
     @Transactional(readOnly = true)
@@ -99,6 +104,11 @@ public class SoftwareManagementService {
 
     @Transactional
     public SoftwareVersionDTO createVersion(Long packageId, SoftwareVersionDTO.CreateRequest request) {
+        return createVersion(packageId, request, null);
+    }
+
+    @Transactional
+    public SoftwareVersionDTO createVersion(Long packageId, SoftwareVersionDTO.CreateRequest request, MultipartFile installer) {
         Long tenantId = requiredTenant();
         SoftwarePackage packageEntity = packageRepository.findByIdAndCompany_IdAndDeletedFalse(packageId, tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Software package not found: " + packageId));
@@ -106,20 +116,29 @@ public class SoftwareManagementService {
         if (request == null || request.getVersion() == null || request.getVersion().isBlank()) {
             throw new BadRequestException("Software version is required");
         }
+        if (installer == null || installer.isEmpty()) throw new BadRequestException("An installer upload is required");
+        if (request.getInstallerType() == null || request.getInstallerType() == SoftwareInstallerType.EXE)
+            request.setInstallerType(SoftwareInstallerType.INNO_SETUP);
+        if (request.getInstallerType() != SoftwareInstallerType.INNO_SETUP)
+            throw new BadRequestException("Only Inno Setup EXE uploads are enabled in this phase");
+        if (request.getDetectionRule() == null || request.getDetectionRule().isBlank())
+            throw new BadRequestException("A detection rule is required to verify installation");
         if (versionRepository.findBySoftwarePackage_IdAndDeletedFalseOrderByVersionDesc(packageId).stream()
                 .anyMatch(v -> v.getVersion().equalsIgnoreCase(request.getVersion().trim()))) {
             throw new BadRequestException("Version already exists for this package");
         }
 
+        SoftwarePackageStorageService.StoredFile stored = packageStorageService.store(installer, tenantId);
         SoftwareVersion version = new SoftwareVersion();
         version.setSoftwarePackage(packageEntity);
         version.setVersion(request.getVersion().trim());
         version.setArchitecture(request.getArchitecture() == null ? "x64" : request.getArchitecture());
-        version.setInstallerType(request.getInstallerType() == null ? SoftwareInstallerType.EXE : request.getInstallerType());
-        version.setInstallerUrl(request.getInstallerUrl());
-        version.setChecksumSha256(request.getChecksumSha256());
-        version.setFileSizeBytes(request.getFileSizeBytes());
-        version.setSilentInstallArguments(request.getSilentInstallArguments());
+        version.setInstallerType(request.getInstallerType());
+        version.setInstallerUrl(null);
+        version.setPackageStorageKey(stored.key());
+        version.setChecksumSha256(stored.checksumSha256());
+        version.setFileSizeBytes(stored.sizeBytes());
+        version.setSilentInstallArguments(null);
         version.setDetectionRule(request.getDetectionRule());
         version.setActive(request.isActive());
 
@@ -133,11 +152,25 @@ public class SoftwareManagementService {
     public List<SoftwareDeploymentDTO> listDeployments() {
         Long tenantId = requiredTenant();
         return deploymentRepository.findByCompany_IdAndDeletedFalseOrderByCreatedAtDesc(tenantId)
-                .stream().map(SoftwareDeploymentDTO::from).toList();
+            .stream().map(this::deploymentDto).toList();
     }
+
+        @Transactional(readOnly = true)
+        public List<SoftwareDeploymentTargetDTO> listDeploymentTargets(Long deploymentId) {
+        Long tenantId = requiredTenant();
+        deploymentRepository.findByIdAndCompany_IdAndDeletedFalse(deploymentId, tenantId)
+            .orElseThrow(() -> new ResourceNotFoundException("Deployment not found: " + deploymentId));
+        return deploymentTargetRepository.findByDeployment_IdAndDeletedFalseOrderByIdAsc(deploymentId)
+            .stream().map(SoftwareDeploymentTargetDTO::from).toList();
+        }
 
     @Transactional
     public SoftwareDeploymentDTO createDeployment(SoftwareDeploymentDTO.CreateRequest request) {
+        return createDeployment(request, null);
+    }
+
+    @Transactional
+    public SoftwareDeploymentDTO createDeployment(SoftwareDeploymentDTO.CreateRequest request, Long createdByUserId) {
         Long tenantId = requiredTenant();
         if (request == null) {
             throw new BadRequestException("Deployment request is required");
@@ -148,6 +181,8 @@ public class SoftwareManagementService {
         if (request.getTargetDeviceIds() == null || request.getTargetDeviceIds().isEmpty()) {
             throw new BadRequestException("At least one target device is required");
         }
+        if (new HashSet<>(request.getTargetDeviceIds()).size() != request.getTargetDeviceIds().size())
+            throw new BadRequestException("A target device may only be selected once");
 
         SoftwareVersion version = versionRepository.findByIdAndSoftwarePackage_Company_IdAndDeletedFalse(request.getSoftwareVersionId(), tenantId)
                 .orElseThrow(() -> new ResourceNotFoundException("Software version not found: " + request.getSoftwareVersionId()));
@@ -158,7 +193,7 @@ public class SoftwareManagementService {
         SoftwareDeployment deployment = new SoftwareDeployment();
         deployment.setCompany(company);
         deployment.setSoftwareVersion(version);
-        deployment.setCreatedByUserId(null);
+        deployment.setCreatedByUserId(createdByUserId);
         deployment.setStatus(SoftwareDeploymentStatus.PENDING);
         deployment.setStartedAt(LocalDateTime.now());
         deployment.setNote(request.getNote());
@@ -181,7 +216,7 @@ public class SoftwareManagementService {
         auditLogService.log("SoftwareDeployment", savedDeployment.getId(), "CREATE",
                 "Queued software deployment for package '" + version.getSoftwarePackage().getName() + "' to "
                         + request.getTargetDeviceIds().size() + " device(s)");
-        return SoftwareDeploymentDTO.from(savedDeployment);
+        return deploymentDto(savedDeployment);
     }
 
     @Transactional(readOnly = true)
@@ -190,7 +225,13 @@ public class SoftwareManagementService {
                         device.getCompany().getId(), List.of(SoftwareDeploymentStatus.PENDING))
                 .stream()
                 .filter(target -> target.getDevice().getId().equals(device.getId()))
-                .map(AgentSoftwareJobDTO::from)
+                .filter(target -> target.getDeployment().getSoftwareVersion().isActive())
+                .map(target -> {
+                    AgentSoftwareJobDTO job = AgentSoftwareJobDTO.from(target);
+                    job.setInstallerUrl(packageStorageService.generateDownloadUrl(
+                            target.getDeployment().getSoftwareVersion().getPackageStorageKey()));
+                    return job;
+                })
                 .toList();
     }
 
@@ -213,6 +254,7 @@ public class SoftwareManagementService {
             target.setCompletedAt(LocalDateTime.now());
         }
         deploymentTargetRepository.save(target);
+        refreshDeploymentStatus(target.getDeployment());
     }
 
     private Long requiredTenant() {
@@ -227,5 +269,41 @@ public class SoftwareManagementService {
         if (!packageRepository.findByIdAndCompany_IdAndDeletedFalse(packageId, tenantId).isPresent()) {
             throw new ResourceNotFoundException("Software package not found: " + packageId);
         }
+    }
+
+    private SoftwareDeploymentDTO deploymentDto(SoftwareDeployment deployment) {
+        SoftwareDeploymentDTO dto = SoftwareDeploymentDTO.from(deployment);
+        List<SoftwareDeploymentTarget> targets = deploymentTargetRepository
+            .findByDeployment_IdAndDeletedFalseOrderByIdAsc(deployment.getId());
+        dto.setTotalTargets(targets.size());
+        dto.setInstalledTargets((int) targets.stream().filter(t -> t.getStatus() == SoftwareDeploymentStatus.INSTALLED
+            || t.getStatus() == SoftwareDeploymentStatus.ALREADY_INSTALLED).count());
+        dto.setInstallingTargets((int) targets.stream().filter(t -> t.getStatus() == SoftwareDeploymentStatus.DOWNLOADING
+            || t.getStatus() == SoftwareDeploymentStatus.INSTALLING).count());
+        dto.setFailedTargets((int) targets.stream().filter(t -> t.getStatus() == SoftwareDeploymentStatus.FAILED).count());
+        dto.setPendingTargets((int) targets.stream().filter(t -> t.getStatus() == SoftwareDeploymentStatus.PENDING
+            || t.getStatus() == SoftwareDeploymentStatus.DEVICE_OFFLINE).count());
+        return dto;
+    }
+
+    private void refreshDeploymentStatus(SoftwareDeployment deployment) {
+        List<SoftwareDeploymentTarget> targets = deploymentTargetRepository
+            .findByDeployment_IdAndDeletedFalseOrderByIdAsc(deployment.getId());
+        boolean allSuccessful = !targets.isEmpty() && targets.stream().allMatch(t -> t.getStatus() == SoftwareDeploymentStatus.INSTALLED
+            || t.getStatus() == SoftwareDeploymentStatus.ALREADY_INSTALLED);
+        boolean anyActive = targets.stream().anyMatch(t -> t.getStatus() == SoftwareDeploymentStatus.DOWNLOADING
+            || t.getStatus() == SoftwareDeploymentStatus.INSTALLING);
+        boolean anyFailed = targets.stream().anyMatch(t -> t.getStatus() == SoftwareDeploymentStatus.FAILED);
+        if (allSuccessful) {
+            deployment.setStatus(SoftwareDeploymentStatus.INSTALLED);
+            deployment.setCompletedAt(LocalDateTime.now());
+        } else if (anyActive) {
+            deployment.setStatus(SoftwareDeploymentStatus.INSTALLING);
+        } else if (anyFailed && targets.stream().allMatch(t -> t.getStatus() == SoftwareDeploymentStatus.FAILED
+            || t.getStatus() == SoftwareDeploymentStatus.INSTALLED || t.getStatus() == SoftwareDeploymentStatus.ALREADY_INSTALLED)) {
+            deployment.setStatus(SoftwareDeploymentStatus.FAILED);
+            deployment.setCompletedAt(LocalDateTime.now());
+        }
+        deploymentRepository.save(deployment);
     }
 }

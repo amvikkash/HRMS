@@ -14,6 +14,11 @@ public class SoftwareDeploymentDTO {
     private LocalDateTime startedAt;
     private LocalDateTime completedAt;
     private String note;
+    private int totalTargets;
+    private int installedTargets;
+    private int installingTargets;
+    private int pendingTargets;
+    private int failedTargets;
 
     public static class CreateRequest {
         private Long softwareVersionId;
@@ -58,4 +63,14 @@ public class SoftwareDeploymentDTO {
     public void setCompletedAt(LocalDateTime completedAt) { this.completedAt = completedAt; }
     public String getNote() { return note; }
     public void setNote(String note) { this.note = note; }
+    public int getTotalTargets() { return totalTargets; }
+    public void setTotalTargets(int totalTargets) { this.totalTargets = totalTargets; }
+    public int getInstalledTargets() { return installedTargets; }
+    public void setInstalledTargets(int installedTargets) { this.installedTargets = installedTargets; }
+    public int getInstallingTargets() { return installingTargets; }
+    public void setInstallingTargets(int installingTargets) { this.installingTargets = installingTargets; }
+    public int getPendingTargets() { return pendingTargets; }
+    public void setPendingTargets(int pendingTargets) { this.pendingTargets = pendingTargets; }
+    public int getFailedTargets() { return failedTargets; }
+    public void setFailedTargets(int failedTargets) { this.failedTargets = failedTargets; }
 }

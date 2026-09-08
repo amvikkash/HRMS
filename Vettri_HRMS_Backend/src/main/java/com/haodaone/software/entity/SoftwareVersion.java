@@ -26,6 +26,9 @@ public class SoftwareVersion extends BaseEntity {
     @Column(name = "installer_url", length = 2048)
     private String installerUrl;
 
+    @Column(name = "package_storage_key", length = 500)
+    private String packageStorageKey;
+
     @Column(name = "checksum_sha256", length = 128)
     private String checksumSha256;
 
@@ -79,6 +82,14 @@ public class SoftwareVersion extends BaseEntity {
 
     public void setInstallerUrl(String installerUrl) {
         this.installerUrl = installerUrl;
+    }
+
+    public String getPackageStorageKey() {
+        return packageStorageKey;
+    }
+
+    public void setPackageStorageKey(String packageStorageKey) {
+        this.packageStorageKey = packageStorageKey;
     }
 
     public String getChecksumSha256() {

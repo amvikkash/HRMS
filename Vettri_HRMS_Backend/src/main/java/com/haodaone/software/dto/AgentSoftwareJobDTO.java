@@ -1,7 +1,5 @@
 package com.haodaone.software.dto;
 
-import com.haodaone.software.entity.SoftwareDeploymentStatus;
-
 public class AgentSoftwareJobDTO {
     private Long targetId;
     private Long deploymentId;
@@ -11,6 +9,7 @@ public class AgentSoftwareJobDTO {
     private String installerUrl;
     private String checksumSha256;
     private String silentInstallArguments;
+    private String detectionRule;
 
     public static AgentSoftwareJobDTO from(com.haodaone.software.entity.SoftwareDeploymentTarget target) {
         var version = target.getDeployment().getSoftwareVersion();
@@ -24,6 +23,7 @@ public class AgentSoftwareJobDTO {
         dto.setInstallerUrl(version.getInstallerUrl());
         dto.setChecksumSha256(version.getChecksumSha256());
         dto.setSilentInstallArguments(version.getSilentInstallArguments());
+        dto.setDetectionRule(version.getDetectionRule());
         return dto;
     }
 
@@ -43,4 +43,6 @@ public class AgentSoftwareJobDTO {
     public void setChecksumSha256(String checksumSha256) { this.checksumSha256 = checksumSha256; }
     public String getSilentInstallArguments() { return silentInstallArguments; }
     public void setSilentInstallArguments(String silentInstallArguments) { this.silentInstallArguments = silentInstallArguments; }
+    public String getDetectionRule() { return detectionRule; }
+    public void setDetectionRule(String detectionRule) { this.detectionRule = detectionRule; }
 }
