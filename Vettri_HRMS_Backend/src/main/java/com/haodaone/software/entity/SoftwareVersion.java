@@ -5,7 +5,7 @@ import jakarta.persistence.*;
 
 @Entity
 @Table(name = "software_version", uniqueConstraints = {
-        @UniqueConstraint(columnNames = {"software_package_id", "version"})
+    @UniqueConstraint(columnNames = {"software_package_id", "package_version"})
 })
 public class SoftwareVersion extends BaseEntity {
 
@@ -14,7 +14,7 @@ public class SoftwareVersion extends BaseEntity {
     private SoftwarePackage softwarePackage;
 
     @Column(name = "package_version", nullable = false, length = 50)
-    private String version;
+    private String packageVersion;
 
     @Column(name = "architecture", length = 20)
     private String architecture = "x64";
@@ -52,12 +52,12 @@ public class SoftwareVersion extends BaseEntity {
         this.softwarePackage = softwarePackage;
     }
 
-    public String getVersion() {
-        return version;
+    public String getPackageVersion() {
+        return packageVersion;
     }
 
-    public void setVersion(String version) {
-        this.version = version;
+    public void setPackageVersion(String packageVersion) {
+        this.packageVersion = packageVersion;
     }
 
     public String getArchitecture() {

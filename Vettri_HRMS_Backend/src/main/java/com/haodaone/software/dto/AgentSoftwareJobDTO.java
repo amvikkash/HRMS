@@ -18,7 +18,7 @@ public class AgentSoftwareJobDTO {
         dto.setTargetId(target.getId());
         dto.setDeploymentId(target.getDeployment().getId());
         dto.setPackageName(packageEntity.getName());
-        dto.setVersion(version.getVersion());
+        dto.setVersion(version.getPackageVersion());
         dto.setInstallerType(version.getInstallerType().name());
         dto.setInstallerUrl(version.getInstallerUrl());
         dto.setChecksumSha256(version.getChecksumSha256());

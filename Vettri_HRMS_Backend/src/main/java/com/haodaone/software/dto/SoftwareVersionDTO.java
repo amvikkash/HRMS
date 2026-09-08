@@ -56,7 +56,7 @@ public class SoftwareVersionDTO {
         SoftwareVersionDTO dto = new SoftwareVersionDTO();
         dto.setId(entity.getId());
         dto.setSoftwarePackageId(entity.getSoftwarePackage() != null ? entity.getSoftwarePackage().getId() : null);
-        dto.setVersion(entity.getVersion());
+        dto.setVersion(entity.getPackageVersion());
         dto.setArchitecture(entity.getArchitecture());
         dto.setInstallerType(entity.getInstallerType());
         dto.setInstallerUrl(entity.getInstallerUrl());

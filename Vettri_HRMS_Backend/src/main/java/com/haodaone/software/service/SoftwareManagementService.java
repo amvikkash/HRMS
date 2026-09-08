@@ -124,14 +124,14 @@ public class SoftwareManagementService {
         if (request.getDetectionRule() == null || request.getDetectionRule().isBlank())
             throw new BadRequestException("A detection rule is required to verify installation");
         if (versionRepository.findBySoftwarePackage_IdAndDeletedFalseOrderByVersionDesc(packageId).stream()
-                .anyMatch(v -> v.getVersion().equalsIgnoreCase(request.getVersion().trim()))) {
+                .anyMatch(v -> v.getPackageVersion().equalsIgnoreCase(request.getVersion().trim()))) {
             throw new BadRequestException("Version already exists for this package");
         }
 
         SoftwarePackageStorageService.StoredFile stored = packageStorageService.store(installer, tenantId);
         SoftwareVersion version = new SoftwareVersion();
         version.setSoftwarePackage(packageEntity);
-        version.setVersion(request.getVersion().trim());
+        version.setPackageVersion(request.getVersion().trim());
         version.setArchitecture(request.getArchitecture() == null ? "x64" : request.getArchitecture());
         version.setInstallerType(request.getInstallerType());
         version.setInstallerUrl(null);
@@ -144,7 +144,7 @@ public class SoftwareManagementService {
 
         SoftwareVersion saved = versionRepository.save(version);
         auditLogService.log("SoftwareVersion", saved.getId(), "CREATE",
-                "Created version '" + saved.getVersion() + "' for package '" + packageEntity.getName() + "'");
+                "Created version '" + saved.getPackageVersion() + "' for package '" + packageEntity.getName() + "'");
         return SoftwareVersionDTO.from(saved);
     }
 
