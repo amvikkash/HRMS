@@ -71,7 +71,8 @@ public class DataSeeder implements CommandLineRunner {
                         "ATTENDANCE_VIEW", "ATTENDANCE_MANAGE", "DEVICE_MANAGE",
                         "LEAVE_APPLY", "LEAVE_VIEW", "LEAVE_APPROVE", "LEAVE_MANAGE",
                         "RECRUITMENT_VIEW", "RECRUITMENT_MANAGE", "PERFORMANCE_VIEW", "PERFORMANCE_MANAGE",
-                        "SALARY_VIEW", "SALARY_MANAGE", "REPORTS_VIEW", "MONITORING_VIEW"));
+                    "SALARY_VIEW", "SALARY_MANAGE", "REPORTS_VIEW", "MONITORING_VIEW",
+                    "SOFTWARE_VIEW", "SOFTWARE_DEPLOY", "SOFTWARE_MANAGE"));
         // Company Admin - company-scoped administrative role. Permissions are the same
         // functional set as HR_ADMIN but this role is intended to be scoped to a
         // single tenant/company (tenant enforcement is enforced server-side).
@@ -80,7 +81,8 @@ public class DataSeeder implements CommandLineRunner {
                         "ATTENDANCE_VIEW", "ATTENDANCE_MANAGE", "DEVICE_MANAGE",
                         "LEAVE_APPLY", "LEAVE_VIEW", "LEAVE_APPROVE", "LEAVE_MANAGE",
                         "RECRUITMENT_VIEW", "RECRUITMENT_MANAGE", "PERFORMANCE_VIEW", "PERFORMANCE_MANAGE",
-                        "SALARY_VIEW", "SALARY_MANAGE", "REPORTS_VIEW", "MONITORING_VIEW", "MONITORING_MANAGE"));
+                    "SALARY_VIEW", "SALARY_MANAGE", "REPORTS_VIEW", "MONITORING_VIEW", "MONITORING_MANAGE",
+                    "SOFTWARE_VIEW", "SOFTWARE_DEPLOY", "SOFTWARE_MANAGE"));
         seedRole("MANAGER", "Team lead - visibility into their reports, leave approval, and performance management for their team",
                 permissionsByCode("EMPLOYEE_VIEW", "ORG_VIEW", "ATTENDANCE_VIEW", "LEAVE_APPLY", "LEAVE_VIEW", "LEAVE_APPROVE",
                         "RECRUITMENT_VIEW", "INTERVIEW_DECISION", "PERFORMANCE_VIEW", "PERFORMANCE_MANAGE", "REPORTS_VIEW"));
@@ -138,7 +140,10 @@ public class DataSeeder implements CommandLineRunner {
                 new String[]{"SALARY_MANAGE", "Define salary structures and create, process, or cancel payroll runs", "Payroll"},
                 new String[]{"REPORTS_VIEW", "View executive, attendance, leave, and recruitment reports", "Reports"},
                 new String[]{"MONITORING_VIEW", "View monitored devices and employee activity sessions", "Monitoring"},
-                new String[]{"MONITORING_MANAGE", "Enroll/decommission monitored devices, rotate agent tokens, and push directives", "Monitoring"}
+                new String[]{"MONITORING_MANAGE", "Enroll/decommission monitored devices, rotate agent tokens, and push directives", "Monitoring"},
+                new String[]{"SOFTWARE_VIEW", "View software catalog, versions, and deployment history", "Software"},
+                new String[]{"SOFTWARE_DEPLOY", "Create and queue software deployments to managed devices", "Software"},
+                new String[]{"SOFTWARE_MANAGE", "Create, edit, and control software packages and installer versions", "Software"}
         );
 
         for (String[] p : permissions) {

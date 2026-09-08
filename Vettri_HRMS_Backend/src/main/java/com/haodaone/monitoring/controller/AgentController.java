@@ -3,6 +3,9 @@ package com.haodaone.monitoring.controller;
 import com.haodaone.monitoring.dto.*;
 import com.haodaone.monitoring.entity.MonitoredDevice;
 import com.haodaone.monitoring.service.AgentIngestService;
+import com.haodaone.software.dto.AgentSoftwareJobDTO;
+import com.haodaone.software.dto.AgentSoftwareStatusRequest;
+import com.haodaone.software.service.SoftwareManagementService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -26,9 +29,11 @@ import org.springframework.web.bind.annotation.*;
 public class AgentController {
 
     private final AgentIngestService agentIngestService;
+    private final SoftwareManagementService softwareManagementService;
 
-    public AgentController(AgentIngestService agentIngestService) {
+    public AgentController(AgentIngestService agentIngestService, SoftwareManagementService softwareManagementService) {
         this.agentIngestService = agentIngestService;
+        this.softwareManagementService = softwareManagementService;
     }
 
     @PostMapping("/heartbeat")
@@ -45,5 +50,19 @@ public class AgentController {
                                                                     HttpServletRequest servletRequest) {
         ActivityBatchResponseData data = agentIngestService.recordActivityBatch(device, request, servletRequest.getRemoteAddr());
         return AgentEnvelope.ok(data);
+    }
+
+    @GetMapping("/software/jobs")
+    public AgentEnvelope<java.util.List<AgentSoftwareJobDTO>> softwareJobs(@AuthenticationPrincipal MonitoredDevice device) {
+        return AgentEnvelope.ok(softwareManagementService.getAgentJobs(device));
+    }
+
+    @PostMapping("/software/jobs/{targetId}/status")
+    public AgentEnvelope<com.haodaone.software.dto.AgentAck> softwareJobStatus(
+            @AuthenticationPrincipal MonitoredDevice device,
+            @PathVariable Long targetId,
+            @RequestBody AgentSoftwareStatusRequest request) {
+        softwareManagementService.updateAgentJobStatus(device, targetId, request);
+        return AgentEnvelope.ok(new com.haodaone.software.dto.AgentAck(true, "Status recorded"));
     }
 }
