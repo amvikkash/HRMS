@@ -14,10 +14,12 @@ import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignReques
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.security.MessageDigest;
 import java.time.Duration;
 import java.util.HexFormat;
 import java.util.UUID;
+import java.security.DigestInputStream;
 
 @Service
 public class SoftwarePackageStorageService {
@@ -42,7 +44,8 @@ public class SoftwarePackageStorageService {
     public StoredFile store(MultipartFile file, Long companyId) {
         if (file == null || file.isEmpty()) throw new BadRequestException("Please upload an installer file");
         String originalName = file.getOriginalFilename() == null ? "" : file.getOriginalFilename();
-        if (originalName.contains("..") || originalName.contains("/") || originalName.contains("\\")
+        if (originalName == null || originalName.isBlank()
+                || originalName.contains("..") || originalName.contains("/") || originalName.contains("\\")
                 || !originalName.toLowerCase().endsWith(".exe")) {
             throw new BadRequestException("Only a safe .exe installer filename is accepted");
         }
@@ -50,14 +53,23 @@ public class SoftwarePackageStorageService {
             throw new BadRequestException("Installer exceeds the maximum allowed size");
 
         try {
-            byte[] content = file.getBytes();
-            String checksum = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(content));
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
             String key = "software/" + companyId + "/" + UUID.randomUUID() + ".exe";
-            s3Client.putObject(PutObjectRequest.builder().bucket(bucketName).key(key)
-                    .contentType("application/vnd.microsoft.portable-executable")
-                    .contentLength((long) content.length).build(), RequestBody.fromBytes(content));
-            log.info("Stored software installer for company {} as private object {}", companyId, key);
-            return new StoredFile(key, checksum, (long) content.length, originalName);
+            try (InputStream inputStream = file.getInputStream();
+                 DigestInputStream digestInputStream = new DigestInputStream(inputStream, digest)) {
+                s3Client.putObject(
+                        PutObjectRequest.builder()
+                                .bucket(bucketName)
+                                .key(key)
+                                .contentType("application/vnd.microsoft.portable-executable")
+                                .contentLength(file.getSize())
+                                .build(),
+                        RequestBody.fromInputStream(digestInputStream, file.getSize())
+                );
+                String checksum = HexFormat.of().formatHex(digest.digest());
+                log.info("Stored software installer for company {} as private object {}", companyId, key);
+                return new StoredFile(key, checksum, file.getSize(), originalName);
+            }
         } catch (IOException e) {
             throw new IllegalStateException("Could not read installer upload", e);
         } catch (Exception e) {
