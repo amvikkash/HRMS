@@ -9,6 +9,7 @@ import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.model.S3Exception;
 import software.amazon.awssdk.services.s3.presigner.S3Presigner;
 import software.amazon.awssdk.services.s3.presigner.model.GetObjectPresignRequest;
 import software.amazon.awssdk.services.s3.model.GetObjectRequest;
@@ -57,22 +58,26 @@ public class SoftwarePackageStorageService {
             String key = "software/" + companyId + "/" + UUID.randomUUID() + ".exe";
             try (InputStream inputStream = file.getInputStream();
                  DigestInputStream digestInputStream = new DigestInputStream(inputStream, digest)) {
-                s3Client.putObject(
-                        PutObjectRequest.builder()
-                                .bucket(bucketName)
-                                .key(key)
-                                .contentType("application/vnd.microsoft.portable-executable")
-                                .contentLength(file.getSize())
-                                .build(),
-                        RequestBody.fromInputStream(digestInputStream, file.getSize())
-                );
+                PutObjectRequest putObjectRequest = PutObjectRequest.builder()
+                        .bucket(bucketName)
+                        .key(key)
+                        .contentType("application/vnd.microsoft.portable-executable")
+                        .contentLength(file.getSize())
+                        .build();
+
+                s3Client.putObject(putObjectRequest, RequestBody.fromInputStream(digestInputStream, file.getSize()));
                 String checksum = HexFormat.of().formatHex(digest.digest());
                 log.info("Stored software installer for company {} as private object {}", companyId, key);
                 return new StoredFile(key, checksum, file.getSize(), originalName);
             }
         } catch (IOException e) {
+            log.error("Could not read installer upload for company {} and file {}", companyId, originalName, e);
             throw new IllegalStateException("Could not read installer upload", e);
+        } catch (S3Exception e) {
+            log.error("S3 upload failed for software installer bucket={} key=software/{}/{}: {}", bucketName, companyId, originalName, e.getMessage(), e);
+            throw new IllegalStateException("S3 upload failed while storing the installer file", e);
         } catch (Exception e) {
+            log.error("Could not store installer upload for company {} and file {}", companyId, originalName, e);
             throw new IllegalStateException("Could not store installer upload", e);
         }
     }
