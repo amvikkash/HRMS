@@ -35,6 +35,7 @@ public class SoftwareManagementService {
     private final CompanyRepository companyRepository;
     private final AuditLogService auditLogService;
     private final SoftwarePackageStorageService packageStorageService;
+    private final SoftwareDeploymentStageEventRepository stageEventRepository;
 
     public SoftwareManagementService(SoftwarePackageRepository packageRepository,
                                     SoftwareVersionRepository versionRepository,
@@ -43,7 +44,8 @@ public class SoftwareManagementService {
                                     MonitoredDeviceRepository monitoredDeviceRepository,
                                     CompanyRepository companyRepository,
                                     AuditLogService auditLogService,
-                                    SoftwarePackageStorageService packageStorageService) {
+                                    SoftwarePackageStorageService packageStorageService,
+                                    SoftwareDeploymentStageEventRepository stageEventRepository) {
         this.packageRepository = packageRepository;
         this.versionRepository = versionRepository;
         this.deploymentRepository = deploymentRepository;
@@ -52,6 +54,7 @@ public class SoftwareManagementService {
         this.companyRepository = companyRepository;
         this.auditLogService = auditLogService;
         this.packageStorageService = packageStorageService;
+        this.stageEventRepository = stageEventRepository;
     }
 
     @Transactional(readOnly = true)
@@ -161,7 +164,13 @@ public class SoftwareManagementService {
         deploymentRepository.findByIdAndCompany_IdAndDeletedFalse(deploymentId, tenantId)
             .orElseThrow(() -> new ResourceNotFoundException("Deployment not found: " + deploymentId));
         return deploymentTargetRepository.findByDeployment_IdAndDeletedFalseOrderByIdAsc(deploymentId)
-            .stream().map(SoftwareDeploymentTargetDTO::from).toList();
+            .stream().map(target -> {
+                SoftwareDeploymentTargetDTO dto = SoftwareDeploymentTargetDTO.from(target);
+                dto.setStages(stageEventRepository.findByTarget_IdOrderByOccurredAtAscIdAsc(target.getId()).stream()
+                    .map(event -> new SoftwareDeploymentTargetDTO.StageEvent(event.getStatus(), event.getErrorCode(),
+                        event.getErrorMessage(), event.getOccurredAt())).toList());
+                return dto;
+            }).toList();
         }
 
     @Transactional
@@ -194,7 +203,7 @@ public class SoftwareManagementService {
         deployment.setCompany(company);
         deployment.setSoftwareVersion(version);
         deployment.setCreatedByUserId(createdByUserId);
-        deployment.setStatus(SoftwareDeploymentStatus.PENDING);
+        deployment.setStatus(SoftwareDeploymentStatus.DEPLOYMENT_QUEUED);
         deployment.setStartedAt(LocalDateTime.now());
         deployment.setNote(request.getNote());
 
@@ -207,10 +216,11 @@ public class SoftwareManagementService {
             SoftwareDeploymentTarget target = new SoftwareDeploymentTarget();
             target.setDeployment(savedDeployment);
             target.setDevice(device);
-            target.setStatus(SoftwareDeploymentStatus.PENDING);
+            target.setStatus(SoftwareDeploymentStatus.DEPLOYMENT_QUEUED);
             target.setStartedAt(LocalDateTime.now());
             target.setEmployee(device.getEmployee());
-            deploymentTargetRepository.save(target);
+            SoftwareDeploymentTarget savedTarget = deploymentTargetRepository.save(target);
+            recordStage(savedTarget, SoftwareDeploymentStatus.DEPLOYMENT_QUEUED, null, null);
         }
 
         auditLogService.log("SoftwareDeployment", savedDeployment.getId(), "CREATE",
@@ -229,7 +239,8 @@ public class SoftwareManagementService {
         Long deviceDbId = device.getId();
 
         return deploymentTargetRepository.findByDevice_Company_IdAndStatusInAndDeletedFalse(
-                        device.getCompany().getId(), List.of(SoftwareDeploymentStatus.PENDING))
+                        device.getCompany().getId(), List.of(SoftwareDeploymentStatus.DEPLOYMENT_QUEUED,
+                            SoftwareDeploymentStatus.PENDING))
                 .stream()
                 .filter(target -> {
                     MonitoredDevice targetDevice = target.getDevice();
@@ -267,8 +278,10 @@ public class SoftwareManagementService {
         target.setStatus(status);
         target.setErrorMessage(request.getErrorMessage());
         target.setInstalledVersion(request.getInstalledVersion());
+        recordStage(target, status, request.getErrorCode(), request.getErrorMessage());
         if (target.getStartedAt() == null) target.setStartedAt(LocalDateTime.now());
-        if (status == SoftwareDeploymentStatus.INSTALLED || status == SoftwareDeploymentStatus.ALREADY_INSTALLED
+        if (status == SoftwareDeploymentStatus.COMPLETED || status == SoftwareDeploymentStatus.INSTALLED
+            || status == SoftwareDeploymentStatus.ALREADY_INSTALLED
                 || status == SoftwareDeploymentStatus.FAILED || status == SoftwareDeploymentStatus.CANCELLED) {
             target.setCompletedAt(LocalDateTime.now());
         }
@@ -295,12 +308,17 @@ public class SoftwareManagementService {
         List<SoftwareDeploymentTarget> targets = deploymentTargetRepository
             .findByDeployment_IdAndDeletedFalseOrderByIdAsc(deployment.getId());
         dto.setTotalTargets(targets.size());
-        dto.setInstalledTargets((int) targets.stream().filter(t -> t.getStatus() == SoftwareDeploymentStatus.INSTALLED
+        dto.setInstalledTargets((int) targets.stream().filter(t -> t.getStatus() == SoftwareDeploymentStatus.COMPLETED
+            || t.getStatus() == SoftwareDeploymentStatus.INSTALLED
             || t.getStatus() == SoftwareDeploymentStatus.ALREADY_INSTALLED).count());
-        dto.setInstallingTargets((int) targets.stream().filter(t -> t.getStatus() == SoftwareDeploymentStatus.DOWNLOADING
+        dto.setInstallingTargets((int) targets.stream().filter(t -> t.getStatus() == SoftwareDeploymentStatus.DEVICE_REACHED
+            || t.getStatus() == SoftwareDeploymentStatus.JOB_RECEIVED
+            || t.getStatus() == SoftwareDeploymentStatus.DOWNLOADING
+            || t.getStatus() == SoftwareDeploymentStatus.DOWNLOAD_VERIFIED
             || t.getStatus() == SoftwareDeploymentStatus.INSTALLING).count());
         dto.setFailedTargets((int) targets.stream().filter(t -> t.getStatus() == SoftwareDeploymentStatus.FAILED).count());
-        dto.setPendingTargets((int) targets.stream().filter(t -> t.getStatus() == SoftwareDeploymentStatus.PENDING
+        dto.setPendingTargets((int) targets.stream().filter(t -> t.getStatus() == SoftwareDeploymentStatus.DEPLOYMENT_QUEUED
+            || t.getStatus() == SoftwareDeploymentStatus.PENDING
             || t.getStatus() == SoftwareDeploymentStatus.DEVICE_OFFLINE).count());
         return dto;
     }
@@ -308,21 +326,40 @@ public class SoftwareManagementService {
     private void refreshDeploymentStatus(SoftwareDeployment deployment) {
         List<SoftwareDeploymentTarget> targets = deploymentTargetRepository
             .findByDeployment_IdAndDeletedFalseOrderByIdAsc(deployment.getId());
-        boolean allSuccessful = !targets.isEmpty() && targets.stream().allMatch(t -> t.getStatus() == SoftwareDeploymentStatus.INSTALLED
+        boolean allSuccessful = !targets.isEmpty() && targets.stream().allMatch(t -> t.getStatus() == SoftwareDeploymentStatus.COMPLETED
+            || t.getStatus() == SoftwareDeploymentStatus.INSTALLED
             || t.getStatus() == SoftwareDeploymentStatus.ALREADY_INSTALLED);
-        boolean anyActive = targets.stream().anyMatch(t -> t.getStatus() == SoftwareDeploymentStatus.DOWNLOADING
-            || t.getStatus() == SoftwareDeploymentStatus.INSTALLING);
+        boolean anyActive = targets.stream().anyMatch(t -> t.getStatus() == SoftwareDeploymentStatus.DEVICE_REACHED
+            || t.getStatus() == SoftwareDeploymentStatus.JOB_RECEIVED
+            || t.getStatus() == SoftwareDeploymentStatus.DOWNLOADING
+            || t.getStatus() == SoftwareDeploymentStatus.DOWNLOAD_VERIFIED
+            || t.getStatus() == SoftwareDeploymentStatus.INSTALLING
+            || t.getStatus() == SoftwareDeploymentStatus.INSTALLATION_COMPLETED
+            || t.getStatus() == SoftwareDeploymentStatus.VERIFYING);
         boolean anyFailed = targets.stream().anyMatch(t -> t.getStatus() == SoftwareDeploymentStatus.FAILED);
         if (allSuccessful) {
-            deployment.setStatus(SoftwareDeploymentStatus.INSTALLED);
+            deployment.setStatus(SoftwareDeploymentStatus.COMPLETED);
             deployment.setCompletedAt(LocalDateTime.now());
         } else if (anyActive) {
             deployment.setStatus(SoftwareDeploymentStatus.INSTALLING);
         } else if (anyFailed && targets.stream().allMatch(t -> t.getStatus() == SoftwareDeploymentStatus.FAILED
-            || t.getStatus() == SoftwareDeploymentStatus.INSTALLED || t.getStatus() == SoftwareDeploymentStatus.ALREADY_INSTALLED)) {
+            || t.getStatus() == SoftwareDeploymentStatus.COMPLETED
+            || t.getStatus() == SoftwareDeploymentStatus.INSTALLED
+            || t.getStatus() == SoftwareDeploymentStatus.ALREADY_INSTALLED)) {
             deployment.setStatus(SoftwareDeploymentStatus.FAILED);
             deployment.setCompletedAt(LocalDateTime.now());
         }
         deploymentRepository.save(deployment);
+    }
+
+    private void recordStage(SoftwareDeploymentTarget target, SoftwareDeploymentStatus status,
+                             String errorCode, String errorMessage) {
+        SoftwareDeploymentStageEvent event = new SoftwareDeploymentStageEvent();
+        event.setTarget(target);
+        event.setStatus(status);
+        event.setErrorCode(errorCode);
+        event.setErrorMessage(errorMessage);
+        event.setOccurredAt(LocalDateTime.now());
+        stageEventRepository.save(event);
     }
 }
