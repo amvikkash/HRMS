@@ -48,6 +48,7 @@ import Notifications from './pages/Notifications';
 const Requirements = lazy(() => import('./pages/Requirements'));
 const MonitoringReports = lazy(() => import('./pages/monitoring/MonitoringReports'));
 const SettingsPlatform = lazy(() => import('./pages/SettingsPlatform'));
+const SoftwareManagement = lazy(() => import('./pages/software/SoftwareManagement'));
 
 export default function App() {
   return (
@@ -85,6 +86,7 @@ export default function App() {
           <Route path="monitoring/devices/:id" element={<MonitoringDeviceDetails />} />
           <Route path="monitoring/activity" element={<MonitoringActivity />} />
           <Route path="monitoring/reports" element={<MonitoringReports />} />
+          <Route path="software" element={<SoftwareManagement />} />
           <Route path="salary" element={<SalaryDashboard />} />
           <Route path="salary/employees" element={<EmployeeSalaryList />} />
           <Route path="salary/employees/:employeeId" element={<SalaryDetails />} />

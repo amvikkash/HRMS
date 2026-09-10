@@ -173,6 +173,7 @@ export const NAV_SECTIONS = [
     items: [
       { to: '/monitoring', icon: MonitorSmartphone, label: 'Live Activity', end: true },
       { to: '/monitoring/devices', icon: MonitorSmartphone, label: 'Devices', permission: 'MONITORING_VIEW' },
+      { to: '/software', icon: PackageOpen, label: 'Software', permission: 'SOFTWARE_VIEW' },
       { to: '/monitoring/activity', icon: Clock, label: 'Activity Log', permission: 'MONITORING_VIEW' },
       { to: '/monitoring/reports', icon: FileBarChart, label: 'Reports', permission: 'MONITORING_VIEW' },
     ],

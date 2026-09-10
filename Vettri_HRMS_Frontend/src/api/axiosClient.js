@@ -16,12 +16,19 @@ export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://orvexa
 
 export const axiosClient = axios.create({
   baseURL: API_BASE_URL,
-  headers: { 'Content-Type': 'application/json' },
+  headers: {},
 });
 
 const isOnline = () => (typeof navigator === 'undefined' ? true : navigator.onLine);
 
 axiosClient.interceptors.request.use((config) => {
+  const isFormData = typeof FormData !== 'undefined' && config.data instanceof FormData;
+  if (isFormData) {
+    config._skipOfflineQueue = true;
+    delete config.headers['Content-Type'];
+    delete config.headers['content-type'];
+  }
+
   const token = tokenStorage.getAccessToken();
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -52,7 +59,7 @@ function shouldQueueForOfflineRetry(config, status) {
   if (status === 401) return false;
   if (status === 403) return false;
   if (status === 400 || status === 404 || status === 422) return false;
-  if (!config || config._queueReplayed) return false;
+  if (!config || config._queueReplayed || config._skipOfflineQueue) return false;
   return true;
 }
 
@@ -105,6 +112,9 @@ axiosClient.interceptors.response.use(
 
     if (!error.response && !originalRequest?._queueReplayed) {
       setConnectedStatus(false);
+      if (originalRequest?._skipOfflineQueue) {
+        return Promise.reject(error);
+      }
       const queued = queueRequestForRetry({
         ...originalRequest,
         _queueId: originalRequest?._queueId || `${Date.now()}-${Math.random()}`,

@@ -1620,6 +1620,54 @@ body {
   border-width: 2px;
 }
 
+.hz-stat-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 7px 10px;
+  border: 1px solid var(--hz-border);
+  border-radius: 8px;
+  background: var(--hz-bg-subtle);
+  color: var(--hz-text-secondary);
+  font-size: var(--hz-text-sm);
+}
+
+.hz-stat-chip strong { color: var(--hz-text-primary); }
+.hz-status-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--hz-gray-400); }
+.hz-status-dot--success { background: var(--hz-success-600); }
+.hz-status-dot--warning { background: var(--hz-warning-600); }
+.hz-status-dot--danger { background: var(--hz-danger-600); }
+
+.deployment-stage {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--hz-border);
+  border-radius: 8px;
+  color: var(--hz-text-muted);
+  background: var(--hz-bg-subtle);
+}
+.deployment-stage__icon {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  flex: 0 0 24px;
+  border-radius: 50%;
+  border: 1px solid var(--hz-border-strong);
+}
+.deployment-stage small { color: var(--hz-text-muted); white-space: nowrap; }
+.deployment-stage--completed { color: var(--hz-success-700); border-color: rgba(25, 135, 84, .25); background: rgba(25, 135, 84, .05); }
+.deployment-stage--completed .deployment-stage__icon { border-color: var(--hz-success-600); background: var(--hz-success-600); color: white; }
+.deployment-stage--active { color: var(--hz-warning-700); border-color: rgba(245, 159, 0, .35); background: rgba(245, 159, 0, .07); }
+.deployment-stage--active .deployment-stage__icon { border-color: var(--hz-warning-600); color: var(--hz-warning-700); }
+.deployment-stage--failed { color: var(--hz-danger-700); border-color: rgba(220, 53, 69, .35); background: rgba(220, 53, 69, .06); }
+.deployment-stage--failed .deployment-stage__icon { border-color: var(--hz-danger-600); background: var(--hz-danger-600); color: white; }
+.spin { animation: deployment-spin 1s linear infinite; }
+@keyframes deployment-spin { to { transform: rotate(360deg); } }
+
 .form-control,
 .form-select {
   min-height: 40px;

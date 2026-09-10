@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
 import { Check, Copy, Download, Eye, Monitor, Plus, ShieldCheck, Search } from 'lucide-react';
+import { employeesApi } from '../../api/endpoints/employees';
 import {
   monitoringApi,
   getDeviceId,
@@ -36,14 +37,16 @@ export default function Devices() {
   const [statusFilter, setStatusFilter] = useState('all');
   const [connectOpen, setConnectOpen] = useState(false);
   const [deviceName, setDeviceName] = useState('');
+  const [employeeId, setEmployeeId] = useState('');
   const [enrollment, setEnrollment] = useState(null);
   const queryClient = useQueryClient();
 
   const { data, isLoading, isError, refetch } = useQuery({ queryKey: ['monitoring-devices'], queryFn: monitoringApi.devices, refetchInterval: 30_000 });
+  const employees = useQuery({ queryKey: ['employees'], queryFn: employeesApi.list });
   const enrollmentDevices = useQuery({ queryKey: ['monitoring-device-enrollment'], queryFn: monitoringApi.devices, enabled: connectOpen && Boolean(enrollment), refetchInterval: 5_000 });
   const enroll = useMutation({
-    mutationFn: () => monitoringApi.enrollDevice({ deviceName: deviceName.trim() }),
-    onSuccess: (result) => { setEnrollment(result); setDeviceName(''); queryClient.invalidateQueries({ queryKey: ['monitoring-devices'] }); },
+    mutationFn: () => monitoringApi.enrollDevice({ deviceName: deviceName.trim(), employeeId: employeeId ? Number(employeeId) : null }),
+    onSuccess: (result) => { setEnrollment(result); setDeviceName(''); setEmployeeId(''); queryClient.invalidateQueries({ queryKey: ['monitoring-devices'] }); },
   });
   const connectedDevice = useMemo(() => {
     const enrolledId = enrollment?.device?.id ?? enrollment?.device?.deviceId;
@@ -54,8 +57,8 @@ export default function Devices() {
     if (connectedDevice) queryClient.invalidateQueries({ queryKey: ['monitoring-devices'] });
   }, [connectedDevice, queryClient]);
 
-  function openConnect() { setEnrollment(null); enroll.reset(); setConnectOpen(true); }
-  function closeConnect() { setConnectOpen(false); setEnrollment(null); enroll.reset(); }
+  function openConnect() { setEnrollment(null); enroll.reset(); setEmployeeId(''); setConnectOpen(true); }
+  function closeConnect() { setConnectOpen(false); setEnrollment(null); enroll.reset(); setEmployeeId(''); }
   async function copyToken() { if (enrollment?.rawToken) await navigator.clipboard.writeText(enrollment.rawToken); }
 
   const filtered = useMemo(() => {
@@ -171,7 +174,7 @@ export default function Devices() {
           <form onSubmit={(event) => { event.preventDefault(); enroll.mutate(); }} className="d-flex flex-column gap-4">
             <div className="d-flex gap-3"><Badge variant="primary">Step 1</Badge><div className="flex-grow-1"><h4 className="mb-1" style={{ fontSize: 'var(--hz-text-base)' }}>Download Vettri Agent</h4><p className="text-secondary-hz mb-2" style={{ fontSize: 'var(--hz-text-sm)' }}>Download the installer for the employee's Windows computer.</p>{AGENT_DOWNLOAD_URL ? <a className="btn btn-outline-primary d-inline-flex align-items-center gap-2" href={AGENT_DOWNLOAD_URL} target="_blank" rel="noreferrer"><Download size={16} /> Download Vettri Agent</a> : <Button type="button" variant="secondary" icon={Download} disabled>Installer link unavailable</Button>}</div></div>
             <div className="d-flex gap-3"><Badge variant="primary">Step 2</Badge><div><h4 className="mb-1" style={{ fontSize: 'var(--hz-text-base)' }}>Install Vettri Agent</h4><p className="text-secondary-hz mb-0" style={{ fontSize: 'var(--hz-text-sm)' }}>Run the installer on the employee's Windows computer.</p></div></div>
-            <div className="d-flex gap-3"><Badge variant="primary">Step 3</Badge><div className="flex-grow-1"><h4 className="mb-1" style={{ fontSize: 'var(--hz-text-base)' }}>Create enrollment token</h4><p className="text-secondary-hz mb-3" style={{ fontSize: 'var(--hz-text-sm)' }}>Create a secure, company-scoped token to paste into the installer.</p><label className="hz-form-label">Device name<input className="form-control mt-1" value={deviceName} onChange={(event) => setDeviceName(event.target.value)} placeholder="e.g. Priya's Windows PC" required maxLength={150} /></label>{enroll.isError && <ErrorBanner>{enroll.error?.response?.data?.message || 'Could not create the enrollment token.'}</ErrorBanner>}<Button type="submit" icon={ShieldCheck} loading={enroll.isPending} disabled={!deviceName.trim()}>Generate enrollment token</Button></div></div>
+            <div className="d-flex gap-3"><Badge variant="primary">Step 3</Badge><div className="flex-grow-1"><h4 className="mb-1" style={{ fontSize: 'var(--hz-text-base)' }}>Create enrollment token</h4><p className="text-secondary-hz mb-3" style={{ fontSize: 'var(--hz-text-sm)' }}>Create a secure, company-scoped token to paste into the installer.</p><label className="hz-form-label">Device name<input className="form-control mt-1" value={deviceName} onChange={(event) => setDeviceName(event.target.value)} placeholder="e.g. Priya's Windows PC" required maxLength={150} /></label><label className="hz-form-label mt-3">Employee<select className="form-select mt-1" value={employeeId} onChange={(event) => setEmployeeId(event.target.value)}><option value="">Unassigned</option>{(employees.data || []).map((employee) => <option key={employee.id} value={employee.id}>{employee.fullName || `${employee.firstName || ''} ${employee.lastName || ''}`.trim()}</option>)}</select></label>{enroll.isError && <ErrorBanner>{enroll.error?.response?.data?.message || 'Could not create the enrollment token.'}</ErrorBanner>}<Button type="submit" icon={ShieldCheck} loading={enroll.isPending} disabled={!deviceName.trim()}>Generate enrollment token</Button></div></div>
           </form>
         ) : (
           <div className="d-flex flex-column gap-4"><div className="d-flex align-items-center gap-2"><Badge variant={connectedDevice ? 'success' : 'warning'} dot>{connectedDevice ? 'Device connected' : 'Waiting for device...'}</Badge></div><div><p className="text-secondary-hz mb-2" style={{ fontSize: 'var(--hz-text-sm)' }}>Enrollment token</p><div className="input-group"><input className="form-control" value={enrollment.rawToken || ''} readOnly aria-label="Enrollment token" /><Button type="button" variant="secondary" icon={Copy} onClick={copyToken}>Copy token</Button></div><p className="text-secondary-hz mt-2 mb-0" style={{ fontSize: 12 }}>This one-time token is issued by the backend. Paste it into the installer and keep it private.</p></div>{connectedDevice && <div className="hz-card p-3"><div className="d-flex align-items-center gap-2 mb-3"><Check size={18} color="var(--hz-success-600)" /><strong>Device connected</strong></div><div className="row g-3" style={{ fontSize: 'var(--hz-text-sm)' }}><div className="col-6"><span className="text-secondary-hz d-block">Device name</span>{getDeviceName(connectedDevice)}</div><div className="col-6"><span className="text-secondary-hz d-block">Employee</span>{getDeviceEmployeeName(connectedDevice) || 'Unassigned'}</div><div className="col-6"><span className="text-secondary-hz d-block">Operating system</span>{getDeviceOS(connectedDevice)}</div><div className="col-6"><span className="text-secondary-hz d-block">Agent version</span>{getDeviceAgentVersion(connectedDevice)}</div><div className="col-12"><span className="text-secondary-hz d-block">Last heartbeat</span>{timeAgoIST(getDeviceLastSeen(connectedDevice))}</div></div></div>}{!connectedDevice && <p className="text-secondary-hz mb-0" style={{ fontSize: 'var(--hz-text-sm)' }}>The device will appear here after the agent's first heartbeat.</p>}</div>

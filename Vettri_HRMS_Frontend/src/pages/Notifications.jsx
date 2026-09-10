@@ -9,9 +9,14 @@ import { selfServiceApi } from '../api/endpoints/selfService';
 import { useAuth } from '../hooks/useAuth';
 
 export default function Notifications() {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const queryClient = useQueryClient();
-  const { data: notifications, isLoading, isError, refetch } = useQuery({ queryKey: ['notifications'], queryFn: selfServiceApi.notifications, enabled: !!user });
+  const isEmployeeUser = hasRole('EMPLOYEE');
+  const { data: notifications, isLoading, isError, refetch } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: selfServiceApi.notifications,
+    enabled: !!user && isEmployeeUser,
+  });
   const markRead = useMutation({
     mutationFn: selfServiceApi.markNotificationRead,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['notifications'] }),
