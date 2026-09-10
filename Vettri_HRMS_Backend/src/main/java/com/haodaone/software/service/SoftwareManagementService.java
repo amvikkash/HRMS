@@ -138,7 +138,7 @@ public class SoftwareManagementService {
         version.setPackageStorageKey(stored.key());
         version.setChecksumSha256(stored.checksumSha256());
         version.setFileSizeBytes(stored.sizeBytes());
-        version.setSilentInstallArguments(null);
+        version.setSilentInstallArguments(request.getSilentInstallArguments());
         version.setDetectionRule(request.getDetectionRule());
         version.setActive(request.isActive());
 
@@ -221,10 +221,25 @@ public class SoftwareManagementService {
 
     @Transactional(readOnly = true)
     public List<AgentSoftwareJobDTO> getAgentJobs(MonitoredDevice device) {
+        if (device == null || device.getCompany() == null) {
+            return List.of();
+        }
+
+        String deviceId = device.getDeviceId();
+        Long deviceDbId = device.getId();
+
         return deploymentTargetRepository.findByDevice_Company_IdAndStatusInAndDeletedFalse(
                         device.getCompany().getId(), List.of(SoftwareDeploymentStatus.PENDING))
                 .stream()
-                .filter(target -> target.getDevice().getId().equals(device.getId()))
+                .filter(target -> {
+                    MonitoredDevice targetDevice = target.getDevice();
+                    if (targetDevice == null) {
+                        return false;
+                    }
+                    boolean sameDbId = deviceDbId != null && targetDevice.getId() != null && targetDevice.getId().equals(deviceDbId);
+                    boolean sameHardwareId = deviceId != null && targetDevice.getDeviceId() != null && targetDevice.getDeviceId().equals(deviceId);
+                    return sameDbId || sameHardwareId;
+                })
                 .filter(target -> target.getDeployment().getSoftwareVersion().isActive())
                 .map(target -> {
                     AgentSoftwareJobDTO job = AgentSoftwareJobDTO.from(target);
@@ -239,6 +254,10 @@ public class SoftwareManagementService {
     public void updateAgentJobStatus(MonitoredDevice device, Long targetId, AgentSoftwareStatusRequest request) {
         SoftwareDeploymentTarget target = deploymentTargetRepository.findByIdAndDevice_IdAndDeletedFalse(targetId, device.getId())
                 .orElseThrow(() -> new ResourceNotFoundException("Software deployment target not found: " + targetId));
+        if (target.getDeployment().getCompany() == null || device.getCompany() == null
+            || !target.getDeployment().getCompany().getId().equals(device.getCompany().getId())) {
+            throw new ResourceNotFoundException("Software deployment target not found: " + targetId);
+        }
         SoftwareDeploymentStatus status;
         try {
             status = SoftwareDeploymentStatus.valueOf(request.getStatus().trim().toUpperCase());

@@ -72,7 +72,7 @@ public class MonitoredDevice extends BaseEntity {
     @Column(name = "agent_token_hash", nullable = false, unique = true, length = 200)
     private String agentTokenHash;
 
-    /** Optional best-effort link, resolved from Employee.user.username == windowsUsername at heartbeat time (see AgentIngestService#resolveEmployee). Never blocks ingestion if unresolved. */
+    /** HRMS assignment selected by an administrator; heartbeat telemetry never changes this link. */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "employee_id")
     private Employee employee;

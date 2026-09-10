@@ -47,17 +47,11 @@ public class DeviceInfoPayload {
     @JsonAlias({"MachineGuid", "MachineGUID"})
     private String machineGuid;
 
-    /**
-     * Employee ID (Employee.employeeCode, e.g. "HAODA-0042") the agent was
-     * configured with at install time - lets AgentIngestService resolve the
-     * employee directly instead of relying solely on windowsUsername
-     * matching User.username, which requires those two values to line up
-     * and doesn't hold for every machine/domain setup.
-     */
+    /** Optional agent telemetry. Employee assignment is owned by monitored_device and is not resolved from this field. */
     @JsonAlias({"EmployeeId"})
     private String employeeId;
 
-    /** Sent for display/logging only - the backend never trusts this for identity resolution, employeeId (the code) is authoritative. */
+    /** Sent for display/logging only; the backend never trusts this for employee identity. */
     @JsonAlias({"EmployeeName"})
     private String employeeName;
 

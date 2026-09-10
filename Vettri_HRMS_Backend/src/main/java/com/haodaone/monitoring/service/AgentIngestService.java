@@ -141,15 +141,9 @@ public class AgentIngestService {
                 continue;
             }
 
-            // Prefer the device's already-resolved employee (resolved via
-            // Employee ID in syncDeviceIdentity above); only fall back to a
-            // per-session username lookup if the device itself has no
-            // resolved employee yet.
+            // The authenticated monitored_device assignment is authoritative.
+            // Windows usernames are telemetry, not HRMS identity.
             com.haodaone.employee.entity.Employee employee = device.getEmployee();
-            if (employee == null) {
-                String username = payload.getUsername() != null ? payload.getUsername() : request.getDevice().getUsername();
-                employee = resolveEmployee(username).orElse(null);
-            }
 
             log.info("Saving activity session {} (device={}, app={}, start={})",
                     payload.getSessionId(), device.getDeviceId(), payload.getApplicationName(), payload.getStartTimeUtc());
@@ -274,41 +268,12 @@ public class AgentIngestService {
             }
             device.setIpAddress(payload.getIpAddress());
 
-            // Employee ID (employeeCode) is authoritative when the agent sends
-            // one - re-resolved on every call so a re-assignment (device
-            // handed to a different employee, config re-provisioned) takes
-            // effect on the device's next check-in without an admin having to
-            // touch the record here. windowsUsername is only a fallback for
-            // agents that predate employeeId being configured.
-            java.util.Optional<com.haodaone.employee.entity.Employee> resolved = resolveEmployee(payload.getEmployeeId(), payload.getUsername());
-            if (resolved.isPresent()) {
-                device.setEmployee(resolved.get());
-            } else if (device.getEmployee() == null) {
-                log.debug("Could not resolve employee for device {} (employeeId={}, username={})",
-                        device.getDeviceId(), payload.getEmployeeId(), payload.getUsername());
-            }
+            // Do not resolve or overwrite employee from agent-controlled fields.
+            // Assignment is owned by the authenticated monitored_device row and
+            // changes only through the admin assignment API.
         }
         device.setLastIpAddress(remoteIp);
         return device;
-    }
-
-    /** Employee ID (employeeCode) first, windowsUsername as a fallback - see DeviceInfoPayload.employeeId javadoc. */
-    private java.util.Optional<com.haodaone.employee.entity.Employee> resolveEmployee(String employeeCode, String windowsUsername) {
-        if (employeeCode != null && !employeeCode.isBlank()) {
-            java.util.Optional<com.haodaone.employee.entity.Employee> byCode = employeeRepository.findByEmployeeCodeAndDeletedFalse(employeeCode.trim());
-            if (byCode.isPresent()) {
-                return byCode;
-            }
-            log.warn("Agent reported employeeId '{}' which does not match any active employee - falling back to windowsUsername", employeeCode);
-        }
-        return resolveEmployee(windowsUsername);
-    }
-
-    private java.util.Optional<com.haodaone.employee.entity.Employee> resolveEmployee(String windowsUsername) {
-        if (windowsUsername == null || windowsUsername.isBlank()) {
-            return java.util.Optional.empty();
-        }
-        return employeeRepository.findByUser_UsernameAndDeletedFalse(windowsUsername);
     }
 
     private LocalDateTime toLocalDateTime(java.time.OffsetDateTime offsetDateTime) {
