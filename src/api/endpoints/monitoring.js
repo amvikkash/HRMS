@@ -22,6 +22,23 @@ export const monitoringApi = {
   productivityReport: (params) => axiosClient.get('/api/monitoring/reports/productivity', { params }).then((res) => res.data),
   managementReport: (params) => axiosClient.get('/api/monitoring/reports/management', { params }).then((res) => res.data),
   exportReport: (format, params) => axiosClient.get(`/api/monitoring/reports/export/${format}`, { params, responseType: 'blob' }).then((res) => res.data),
+  remoteCommands: (deviceId) => axiosClient.get(`/api/devices/${deviceId}/remote-commands`).then((res) => res.data),
+  createRemoteCommand: (deviceId, payload) => axiosClient.post(`/api/devices/${deviceId}/remote-commands`, payload).then((res) => res.data),
+  remoteCommand: (deviceId, commandId) => axiosClient.get(`/api/devices/${deviceId}/remote-commands/${commandId}`).then((res) => res.data),
+  cancelRemoteCommand: (deviceId, commandId) => axiosClient.post(`/api/devices/${deviceId}/remote-commands/${commandId}/cancel`).then((res) => res.data),
+  startRemoteDesktop: (deviceId) => axiosClient.post(`/api/devices/${deviceId}/remote-desktop/sessions`).then((res) => res.data),
+  remoteDesktopSessions: (deviceId) => axiosClient.get(`/api/devices/${deviceId}/remote-desktop/sessions`).then((res) => res.data),
+  remoteDesktopSession: (deviceId, sessionId) => axiosClient.get(`/api/devices/${deviceId}/remote-desktop/sessions/${sessionId}`).then((res) => res.data),
+  endRemoteDesktop: (deviceId, sessionId) => axiosClient.post(`/api/devices/${deviceId}/remote-desktop/sessions/${sessionId}/end`).then((res) => res.data),
+  remoteDesktopWebRtcOffer: (deviceId, sessionId, token, payload) => axiosClient.post(`/api/devices/${deviceId}/remote-desktop/sessions/${sessionId}/webrtc/offer`, payload, { headers: { 'X-WebRTC-Signaling-Token': token } }).then((res) => res.data),
+  remoteDesktopWebRtcIce: (deviceId, sessionId, token, payload) => axiosClient.post(`/api/devices/${deviceId}/remote-desktop/sessions/${sessionId}/webrtc/ice`, payload, { headers: { 'X-WebRTC-Signaling-Token': token } }).then((res) => res.data),
+  remoteDesktopWebRtcEvents: (deviceId, sessionId, token) => axiosClient.get(`/api/devices/${deviceId}/remote-desktop/sessions/${sessionId}/events`, { headers: { 'X-WebRTC-Signaling-Token': token } }).then((res) => res.data),
+  remoteDesktopFrame: (deviceId, sessionId) => axiosClient.get(`/api/devices/${deviceId}/remote-desktop/sessions/${sessionId}/frame`, { responseType: 'blob' }).then((res) => ({
+    blob: res.data,
+    width: Number(res.headers['x-remote-width']) || 1280,
+    height: Number(res.headers['x-remote-height']) || 720,
+  })),
+  remoteDesktopInput: (deviceId, sessionId, input) => axiosClient.post(`/api/devices/${deviceId}/remote-desktop/sessions/${sessionId}/input`, input).then((res) => res.data),
 };
 
 function getPageContent(data) {

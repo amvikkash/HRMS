@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import { Users, UserCheck, CalendarOff, CalendarDays, Clock3, Inbox, FileText, ArrowRight, ClipboardCheck, PencilLine, Sparkles, BarChart3, BriefcaseBusiness, Settings2, WalletCards, TrendingUp, LifeBuoy } from 'lucide-react';
+import { Users, UserCheck, CalendarOff, CalendarDays, Clock3, Inbox, FileText, ArrowRight, ClipboardCheck, Sparkles, BarChart3, BriefcaseBusiness, Settings2, WalletCards, TrendingUp, LifeBuoy } from 'lucide-react';
 import { dashboardApi } from '../api/endpoints/dashboard';
 import { holidaysApi, leaveRequestsApi } from '../api/endpoints/leave';
 import { documentsApi, DOCUMENT_TYPE_LABEL } from '../api/endpoints/documents';
@@ -9,6 +9,7 @@ import { employeesApi } from '../api/endpoints/employees';
 import { attendanceApi } from '../api/endpoints/attendance';
 import { employeeSalaryApi } from '../api/endpoints/salary';
 import Avatar from '../components/ui/Avatar';
+import EmptyState from '../components/ui/EmptyState';
 import { useAuth } from '../hooks/useAuth';
 import { useToast } from '../components/ui/Toast';
 import { EmployeeMetric, AttendanceWidget, LeaveWidget, FinanceWidget } from './dashboard/components/EmployeeWidgets';
@@ -18,7 +19,6 @@ export default function Dashboard() {
   const toast = useToast();
   const queryClient = useQueryClient();
   const firstName = user?.fullName?.split(' ')[0];
-  const [feedMode, setFeedMode] = useState('Post');
 
   // A plain EMPLOYEE (seeded with zero permissions - see DataSeeder) lands
   // here right after login with none of EMPLOYEE_VIEW/LEAVE_VIEW/etc. Skip
@@ -85,6 +85,15 @@ export default function Dashboard() {
     enabled: canViewExpiringDocs,
   });
 
+  // Same source as the Employee dashboard's "Next holiday" widget - reused
+  // here so the admin view shows the org's actual next holiday instead of
+  // a permanent "no data" placeholder.
+  const { data: holidaysData } = useQuery({
+    queryKey: ['dashboard-holidays'],
+    queryFn: holidaysApi.list,
+    enabled: canViewOrgSummary,
+  });
+
   const decideLeave = useMutation({
     mutationFn: ({ id, approve }) => (approve ? leaveRequestsApi.approve(id) : leaveRequestsApi.reject(id)),
     onSuccess: () => {
@@ -121,6 +130,12 @@ export default function Dashboard() {
     { label: 'Employee documents', count: expiringCount, detail: expiringCount ? 'Expiring within 30 days' : 'No documents need attention', icon: FileText, to: '/employees' },
   ];
 
+  const todayKeyAdmin = now.toISOString().slice(0, 10);
+  const holidaysList = Array.isArray(holidaysData) ? holidaysData : [];
+  const nextOrgHoliday = holidaysList
+    .filter((holiday) => typeof holiday.date === 'string' && holiday.date >= todayKeyAdmin)
+    .sort((first, second) => first.date.localeCompare(second.date))[0];
+
   const modules = [
     { title: 'Workforce', description: 'Manage employees, profiles, and organization structure.', icon: Users, accent: 'blue', to: '/employees' },
     { title: 'Attendance', description: 'Track attendance and view workforce records.', icon: Clock3, accent: 'green', to: '/attendance' },
@@ -142,17 +157,6 @@ export default function Dashboard() {
         </div>
         <div className="hz-dashboard__welcome-mark" aria-hidden="true"><Users size={21} /></div>
       </header>
-
-      <section className="hz-dashboard__explore" aria-labelledby="explore-title">
-        <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Your workspace</span><h2 id="explore-title">Explore Vettri HRMS</h2></div></div>
-        <div className="hz-dashboard__module-grid">
-          {modules.map(({ title, description, icon: Icon, accent, to }) => <Link to={to} className="hz-dashboard__module-card" key={title}>
-            <span className={`hz-dashboard__module-icon hz-dashboard__module-icon--${accent}`}><Icon size={19} /></span>
-            <span className="hz-dashboard__module-copy"><strong>{title}</strong><small>{description}</small></span>
-            <ArrowRight size={16} />
-          </Link>)}
-        </div>
-      </section>
 
       <section className="hz-dashboard__metrics" aria-labelledby="workforce-metrics-title">
         <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">At a glance</span><h2 id="workforce-metrics-title">Workforce metrics</h2></div><Link to="/employees" className="hz-dashboard__text-link">View workforce <ArrowRight size={15} /></Link></div>
@@ -199,16 +203,31 @@ export default function Dashboard() {
       <div className="hz-dashboard__secondary-grid">
         <section className="hz-dashboard__surface hz-dashboard__updates" aria-labelledby="updates-title">
           <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Company feed</span><h2 id="updates-title">Organization updates</h2></div></div>
-          <div className="hz-post-box">
-            <div className="hz-post-box__actions"><button type="button" className={feedMode === 'Post' ? 'active' : ''} onClick={() => setFeedMode('Post')}><PencilLine size={15} /> Post</button><button type="button" className={feedMode === 'Poll' ? 'active' : ''} onClick={() => setFeedMode('Poll')}><ClipboardCheck size={15} /> Poll</button><button type="button" className={feedMode === 'Praise' ? 'active' : ''} onClick={() => setFeedMode('Praise')}><Sparkles size={15} /> Praise</button></div>
-            <div className="hz-post-box__placeholder">{feedMode} updates are not configured for this workspace yet.</div>
-          </div>
+          <EmptyState icon={Sparkles} title="Company feed is coming soon" description="Posts, polls, and praise from your organization will appear here once this is turned on." />
         </section>
         <section className="hz-dashboard__surface" aria-labelledby="holiday-title">
           <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Plan ahead</span><h2 id="holiday-title">Upcoming holiday</h2></div></div>
-          <div className="hz-dashboard__holiday hz-dashboard__holiday--empty"><span>No holiday data available</span><strong>Upcoming holidays</strong><small>Add or configure holidays to see them here.</small><Link to="/reports">View holiday calendar <ArrowRight size={14} /></Link></div>
+          {nextOrgHoliday ? (
+            <div className="hz-dashboard__holiday">
+              <span>{new Date(`${nextOrgHoliday.date}T00:00:00`).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</span>
+              <strong>{nextOrgHoliday.name}</strong>
+              <small>Next holiday on the company calendar</small>
+              <Link to="/reports">View holiday calendar <ArrowRight size={14} /></Link>
+            </div>
+          ) : (
+            <div className="hz-dashboard__holiday hz-dashboard__holiday--empty"><span>No upcoming holidays</span><strong>Holiday calendar</strong><small>Add company holidays to see them here.</small><Link to="/reports">View holiday calendar <ArrowRight size={14} /></Link></div>
+          )}
         </section>
       </div>
+
+      <section className="hz-dashboard__quicklinks" aria-labelledby="quicklinks-title">
+        <div className="hz-dashboard__section-heading"><div><span className="hz-dashboard__section-kicker">Your workspace</span><h2 id="quicklinks-title">More in Vettri HRMS</h2></div></div>
+        <div className="hz-dashboard__quicklinks-row">
+          {modules.map(({ title, icon: Icon, to }) => <Link to={to} className="hz-dashboard__quicklink" key={title}>
+            <Icon size={16} /><span>{title}</span>
+          </Link>)}
+        </div>
+      </section>
 
       <section className="hz-dashboard__support-strip" aria-labelledby="support-strip-title">
         <div><span className="hz-dashboard__section-kicker">Need a hand?</span><h2 id="support-strip-title">Support information</h2><p>Reach the right team for your Vettri HRMS questions.</p></div>

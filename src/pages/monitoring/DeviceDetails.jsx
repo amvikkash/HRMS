@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Monitor, AppWindow, Activity, KeyRound, Copy } from 'lucide-react';
+import { ArrowLeft, Monitor, AppWindow, Activity, KeyRound, Copy, Terminal, MonitorUp } from 'lucide-react';
 import {
   monitoringApi,
   getDeviceName,
@@ -128,6 +128,8 @@ export default function DeviceDetails() {
             <Button size="sm" icon={KeyRound} onClick={() => { setOtpOpen(true); requestOtp.mutate(); }}>
               Rotate token
             </Button>
+            <Link to={`/monitoring/devices/${id}/cli`} className="text-decoration-none"><Button size="sm" variant="secondary" icon={Terminal}>Vettri CLI</Button></Link>
+            <Link to={`/monitoring/devices/${id}/remote-desktop`} className="text-decoration-none"><Button size="sm" variant="secondary" icon={MonitorUp}>Remote Desktop</Button></Link>
           </div>
 
           <div className="row g-3 mt-1">

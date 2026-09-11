@@ -60,7 +60,12 @@ export default function Topbar({ onOpenMobileNav }) {
     });
     return item?.label || 'Workspace';
   }, [location.pathname]);
-  const { data: notifications = [] } = useQuery({ queryKey: ['notifications'], queryFn: selfServiceApi.notifications, enabled: !!user });
+  const isEmployeeUser = hasRole('EMPLOYEE');
+  const { data: notifications = [] } = useQuery({
+    queryKey: ['notifications'],
+    queryFn: selfServiceApi.notifications,
+    enabled: !!user && isEmployeeUser,
+  });
   const unreadNotifications = notifications.filter((notification) => !(notification.read_at || notification.readAt)).length;
   const recentNotifications = notifications.slice(0, 5);
   const markRead = useMutation({

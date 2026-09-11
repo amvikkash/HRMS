@@ -181,7 +181,7 @@ function AttendanceManagement() {
             <tbody>
               {liveRecords.map((r) => (
                 <tr key={r.id}>
-                  <td className="ps-4">
+                  <td data-label="Employee" className="ps-4">
                     {r.mapped ? (
                       <Link to={`/employees/${r.employeeId}`} className="d-flex align-items-center gap-2 text-decoration-none">
                         <Avatar name={r.employeeName} size="sm" />
@@ -202,15 +202,15 @@ function AttendanceManagement() {
                       </div>
                     )}
                   </td>
-                  <td style={{ fontSize: 'var(--hz-text-sm)' }}>{r.departmentName || '—'}</td>
-                  <td style={{ fontSize: 'var(--hz-text-sm)', color: 'var(--hz-text-secondary)' }}>
+                  <td data-label="Department" style={{ fontSize: 'var(--hz-text-sm)' }}>{r.departmentName || '—'}</td>
+                  <td data-label="Punch time" style={{ fontSize: 'var(--hz-text-sm)', color: 'var(--hz-text-secondary)' }}>
                     {new Date(r.punchTime).toLocaleTimeString()}
                   </td>
-                  <td>
+                  <td data-label="Type">
                     <PunchBadge type={r.punchType} />
                   </td>
-                  <td style={{ fontSize: 'var(--hz-text-sm)' }}>{r.verifyMode}</td>
-                  <td className="pe-4" style={{ fontSize: 'var(--hz-text-sm)' }}>
+                  <td data-label="Verify mode" style={{ fontSize: 'var(--hz-text-sm)' }}>{r.verifyMode}</td>
+                  <td data-label="Device" className="pe-4" style={{ fontSize: 'var(--hz-text-sm)' }}>
                     {r.deviceName}
                   </td>
                 </tr>

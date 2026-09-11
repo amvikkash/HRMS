@@ -94,7 +94,7 @@ export default function Login() {
   }
 
   return (
-    <div className="vettri-login d-flex" style={{ minHeight: '100vh', background: 'var(--hz-bg-canvas)' }}>
+    <div className="vettri-login hz-auth-workspace d-flex" style={{ minHeight: '100vh', background: 'var(--hz-bg-canvas)' }}>
       {/* Premium left brand panel - desktop only */}
       <LoginBrandPanel />
 

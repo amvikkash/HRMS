@@ -6,7 +6,7 @@ export default function PageHeader({ eyebrow, title, description, actions, class
         <h1 className="hz-page-header__title">{title}</h1>
         {description && <p className="hz-page-header__description">{description}</p>}
       </div>
-      {actions && <div className="d-flex align-items-center gap-2 flex-wrap">{actions}</div>}
+      {actions && <div className="hz-page-header__actions d-flex align-items-center gap-2 flex-wrap">{actions}</div>}
     </div>
   );
 }

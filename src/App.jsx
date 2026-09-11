@@ -34,6 +34,8 @@ const SalaryReports = lazy(() => import('./pages/salary/SalaryReports'));
 const MonitoringDashboard = lazy(() => import('./pages/monitoring/MonitoringDashboard'));
 const MonitoringDevices = lazy(() => import('./pages/monitoring/Devices'));
 const MonitoringDeviceDetails = lazy(() => import('./pages/monitoring/DeviceDetails'));
+const VettriCli = lazy(() => import('./pages/monitoring/VettriCli'));
+const RemoteDesktop = lazy(() => import('./pages/monitoring/RemoteDesktop'));
 const MonitoringActivity = lazy(() => import('./pages/monitoring/Activity'));
 import SettingsUsers from './pages/SettingsUsers';
 import SettingsOrganization from './pages/SettingsOrganization';
@@ -48,6 +50,7 @@ import Notifications from './pages/Notifications';
 const Requirements = lazy(() => import('./pages/Requirements'));
 const MonitoringReports = lazy(() => import('./pages/monitoring/MonitoringReports'));
 const SettingsPlatform = lazy(() => import('./pages/SettingsPlatform'));
+const SoftwareManagement = lazy(() => import('./pages/software/SoftwareManagement'));
 
 export default function App() {
   return (
@@ -83,8 +86,11 @@ export default function App() {
           <Route path="monitoring/live" element={<MonitoringDashboard />} />
           <Route path="monitoring/devices" element={<MonitoringDevices />} />
           <Route path="monitoring/devices/:id" element={<MonitoringDeviceDetails />} />
+          <Route path="monitoring/devices/:id/cli" element={<VettriCli />} />
+          <Route path="monitoring/devices/:id/remote-desktop" element={<RemoteDesktop />} />
           <Route path="monitoring/activity" element={<MonitoringActivity />} />
           <Route path="monitoring/reports" element={<MonitoringReports />} />
+          <Route path="software" element={<SoftwareManagement />} />
           <Route path="salary" element={<SalaryDashboard />} />
           <Route path="salary/employees" element={<EmployeeSalaryList />} />
           <Route path="salary/employees/:employeeId" element={<SalaryDetails />} />

@@ -48,7 +48,10 @@ function writeQueue(queue) {
 }
 
 export function readQueue() {
-  return safeJsonParse(localStorage.getItem(QUEUE_KEY), []).map((item) => ({
+  return safeJsonParse(localStorage.getItem(QUEUE_KEY), []).filter((item) => {
+    const url = String(item?.url || '');
+    return !url.includes('/api/employees/import/preview');
+  }).map((item) => ({
     id: item.id || `${Date.now()}-${Math.random()}`,
     method: (item.method || 'POST').toLowerCase(),
     url: item.url || '/',
@@ -129,7 +132,21 @@ function getRetryDelayMs(retryCount, error) {
   return bounded;
 }
 
+function isMultipartUploadRequest(request) {
+  if (request?._skipOfflineQueue) return true;
+  if (typeof FormData !== 'undefined' && request?.data instanceof FormData) return true;
+  const contentType = request?.headers?.['Content-Type'] || request?.headers?.['content-type'] || '';
+  return typeof contentType === 'string' && contentType.toLowerCase().includes('multipart/form-data');
+}
+
 export function queueRequestForRetry(request, error) {
+  if (isMultipartUploadRequest(request)) {
+    state.connectionState = ConnectionState.DEGRADED;
+    state.lastError = 'Multipart uploads cannot be queued for offline retry because FormData is not serializable in localStorage.';
+    console.warn(state.lastError);
+    return false;
+  }
+
   const queue = readQueue();
   const safeRequest = {
     id: request._queueId || `${Date.now()}-${Math.random()}`,

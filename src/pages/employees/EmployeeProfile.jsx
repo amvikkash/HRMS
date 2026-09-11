@@ -93,13 +93,13 @@ export default function EmployeeProfile() {
         <ArrowLeft size={15} /> Back to Employees
       </Link>
 
-      <Card className="hz-profile__identity-card">
+      <section className="hz-profile-identity-panel" aria-labelledby="employee-profile-name">
         <div className="d-flex align-items-start justify-content-between flex-wrap gap-3">
           <div className="d-flex align-items-center gap-3">
             <Avatar name={employee.fullName} size="xl" />
             <div className="hz-profile__identity-copy">
               <div className="d-flex align-items-center gap-2">
-                <h1 style={{ fontSize: 'var(--hz-text-xl)', fontWeight: 700, margin: 0 }}>{employee.fullName}</h1>
+                <h1 id="employee-profile-name" style={{ fontSize: 'var(--hz-text-xl)', fontWeight: 700, margin: 0 }}>{employee.fullName}</h1>
                 <Badge variant={meta.variant} dot>
                   {meta.label}
                 </Badge>
@@ -155,7 +155,7 @@ export default function EmployeeProfile() {
           <ProfileContact icon={MapPin} label="Location" value={employee.address} />
           <ProfileContact icon={Users} label="Department" value={employee.departmentName} />
         </div>
-      </Card>
+      </section>
 
       <Tabs items={availableTabs} value={tab} onChange={changeTab} />
 
@@ -398,13 +398,13 @@ function AttendanceTab({ employee }) {
           <tbody>
             {records.map((r) => (
               <tr key={r.id}>
-                <td className="ps-4" style={{ fontSize: 'var(--hz-text-sm)' }}>{new Date(r.punchTime).toLocaleDateString()}</td>
-                <td style={{ fontSize: 'var(--hz-text-sm)', color: 'var(--hz-text-secondary)' }}>{new Date(r.punchTime).toLocaleTimeString()}</td>
-                <td>
+                <td data-label="Date" className="ps-4" style={{ fontSize: 'var(--hz-text-sm)' }}>{new Date(r.punchTime).toLocaleDateString()}</td>
+                <td data-label="Time" style={{ fontSize: 'var(--hz-text-sm)', color: 'var(--hz-text-secondary)' }}>{new Date(r.punchTime).toLocaleTimeString()}</td>
+                <td data-label="Type">
                   <Badge variant={r.punchType === 'IN' ? 'success' : r.punchType === 'OUT' ? 'danger' : 'neutral'}>{r.punchType}</Badge>
                 </td>
-                <td style={{ fontSize: 'var(--hz-text-sm)' }}>{r.verifyMode || '—'}</td>
-                <td className="pe-4" style={{ fontSize: 'var(--hz-text-sm)' }}>{r.deviceName || '—'}</td>
+                <td data-label="Verify mode" style={{ fontSize: 'var(--hz-text-sm)' }}>{r.verifyMode || '—'}</td>
+                <td data-label="Device" className="pe-4" style={{ fontSize: 'var(--hz-text-sm)' }}>{r.deviceName || '—'}</td>
               </tr>
             ))}
           </tbody>

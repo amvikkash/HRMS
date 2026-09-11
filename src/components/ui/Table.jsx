@@ -87,7 +87,7 @@ export default function Table({
               >
                 {selectable && <td className="hz-table__selection" onClick={(event) => event.stopPropagation()}><input type="checkbox" checked={selectedKeys.has(getRowKey(row, i))} onChange={() => onToggleRow?.(row)} aria-label={`Select row ${i + 1}`} /></td>}
                 {columns.map((col) => (
-                  <td key={col.key} style={{ textAlign: col.align, ...col.style }} className={col.className}>
+                  <td key={col.key} data-label={typeof col.label === 'string' ? col.label : undefined} style={{ textAlign: col.align, ...col.style }} className={col.className}>
                     {col.render ? col.render(row) : row[col.key]}
                   </td>
                 ))}

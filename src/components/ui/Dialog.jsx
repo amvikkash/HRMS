@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { X } from 'lucide-react';
 
 const SIZE_WIDTH = { sm: 420, md: 560, lg: 680, xl: 860 };
@@ -34,13 +35,12 @@ export default function Dialog({ open, onClose, title, description, size = 'md',
     const previousOverflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
 
-    // Focus the first focusable element inside the dialog (or the dialog
-    // itself as a fallback) so keyboard/screen-reader users land inside it
-    // immediately, not still on whatever triggered the open.
-    const focusable = dialogRef.current?.querySelector(
-      'input, select, textarea, button, [tabindex]:not([tabindex="-1"])'
-    );
-    (focusable || dialogRef.current)?.focus();
+    // Start at the dialog landmark, not the first field. Focusing a field in
+    // a scrollable workflow can silently scroll the header and step context
+    // out of view as the dialog opens.
+    const body = dialogRef.current?.querySelector('.hz-dialog__body');
+    if (body) body.scrollTop = 0;
+    dialogRef.current?.focus();
 
     function requestClose() {
       if (hasUnsavedChanges && !window.confirm('Discard your unsaved changes?')) return;
@@ -79,7 +79,7 @@ export default function Dialog({ open, onClose, title, description, size = 'md',
 
   if (!open) return null;
 
-  return (
+  return createPortal(
     <div
       className="hz-dialog-backdrop position-fixed top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
       onClick={() => {
@@ -117,5 +117,6 @@ export default function Dialog({ open, onClose, title, description, size = 'md',
         {footer && <div className="hz-dialog__footer d-flex align-items-center justify-content-end gap-2">{footer}</div>}
       </div>
     </div>
+    , document.body
   );
 }
