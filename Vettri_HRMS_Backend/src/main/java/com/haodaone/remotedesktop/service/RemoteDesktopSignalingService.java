@@ -111,7 +111,7 @@ public class RemoteDesktopSignalingService {
         State state = authorizedAgentState(device, signal);
         String status = signal.status() == null ? "" : signal.status().trim().toUpperCase(Locale.ROOT);
         if (!Set.of("CONNECTED", "FAILED", "DISCONNECTED").contains(status)) throw new BadRequestException("Unsupported WebRTC state");
-        RemoteDesktopSession session = session(signal.sessionId(), state);
+        RemoteDesktopSession session = session(sessionId(signal), state);
         if (status.equals("CONNECTED")) {
             session.setStatus(RemoteDesktopStatus.CONNECTED);
             session.setStartedAt(session.getStartedAt() == null ? LocalDateTime.now() : session.getStartedAt());
