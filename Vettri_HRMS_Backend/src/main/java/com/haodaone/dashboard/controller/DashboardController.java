@@ -60,6 +60,7 @@ public class DashboardController {
 
     @GetMapping("/summary")
     @PreAuthorize("!hasRole('EMPLOYEE') and hasAuthority('EMPLOYEE_VIEW')")
+    @Transactional(readOnly = true)
     public DashboardSummaryDTO summary() {
         Long companyId = requiredTenant();
         long total = employeeRepository.countByCompany_IdAndDeletedFalse(companyId);
