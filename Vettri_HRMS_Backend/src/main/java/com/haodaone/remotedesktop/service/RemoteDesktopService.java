@@ -10,6 +10,8 @@ import com.haodaone.remotedesktop.entity.*;
 import com.haodaone.remotedesktop.repository.RemoteDesktopSessionRepository;
 import com.haodaone.tenant.TenantContext;
 import org.springframework.http.MediaType;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
@@ -18,6 +20,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Service
 public class RemoteDesktopService {
+    private static final Logger log = LoggerFactory.getLogger(RemoteDesktopService.class);
     private static final List<RemoteDesktopStatus> ACTIVE = List.of(RemoteDesktopStatus.REQUESTED, RemoteDesktopStatus.CONNECTING, RemoteDesktopStatus.CONNECTED);
     private static final List<RemoteDesktopStatus> AGENT_VISIBLE = List.of(RemoteDesktopStatus.REQUESTED, RemoteDesktopStatus.CONNECTING, RemoteDesktopStatus.CONNECTED, RemoteDesktopStatus.CANCELLED);
     private final RemoteDesktopSessionRepository sessionRepository;
@@ -41,6 +44,7 @@ public class RemoteDesktopService {
         RemoteDesktopSession session = new RemoteDesktopSession();
         session.setCompany(device.getCompany()); session.setDevice(device); session.setRequestedBy(requestedBy); session.setStatus(RemoteDesktopStatus.REQUESTED);
         RemoteDesktopSession saved = sessionRepository.save(session);
+        log.info("Remote desktop stage=SESSION_CREATED sessionId={} deviceId={} deviceName={} companyId={} requestedBy={} status={}", saved.getId(), device.getId(), device.getDeviceName(), companyId, requestedBy, saved.getStatus());
         auditLogService.log("RemoteDesktopSession", saved.getId(), "CREATE", "Remote desktop requested for device '" + device.getDeviceName() + "'");
         return RemoteDesktopDTO.Session.from(saved);
     }
@@ -57,11 +61,21 @@ public class RemoteDesktopService {
         return RemoteDesktopDTO.Session.from(session);
     }
 
-    @Transactional(readOnly = true)
+    @Transactional
     public List<RemoteDesktopDTO.AgentSession> agentRequests(MonitoredDevice device) {
         if (device == null || device.getId() == null) return List.of();
         return sessionRepository.findByDevice_IdAndStatusInAndDeletedFalse(device.getId(), AGENT_VISIBLE).stream()
-                .map(s -> new RemoteDesktopDTO.AgentSession(String.valueOf(s.getId()), s.getStatus() == RemoteDesktopStatus.CANCELLED ? "STOP" : "START")).toList();
+                .map(s -> {
+                    if (s.getStatus() == RemoteDesktopStatus.REQUESTED) {
+                        s.setStatus(RemoteDesktopStatus.CONNECTING);
+                        s.setStartedAt(LocalDateTime.now());
+                        sessionRepository.save(s);
+                        log.info("Remote desktop stage=AGENT_REQUEST_DELIVERED sessionId={} deviceId={} deviceName={} status=CONNECTING", s.getId(), device.getId(), device.getDeviceName());
+                    } else {
+                        log.info("Remote desktop stage=AGENT_POLL sessionId={} deviceId={} action={} status={}", s.getId(), device.getId(), s.getStatus() == RemoteDesktopStatus.CANCELLED ? "STOP" : "START", s.getStatus());
+                    }
+                    return new RemoteDesktopDTO.AgentSession(String.valueOf(s.getId()), s.getStatus() == RemoteDesktopStatus.CANCELLED ? "STOP" : "START");
+                }).toList();
     }
 
     @Transactional
@@ -74,8 +88,9 @@ public class RemoteDesktopService {
         byte[] image;
         try { image = Base64.getDecoder().decode(payload.imageBase64()); } catch (IllegalArgumentException ex) { throw new BadRequestException("Invalid screen frame"); }
         if (image.length == 0 || image.length > 1_500_000) throw new BadRequestException("Screen frame is too large");
-        if (session.getStatus() != RemoteDesktopStatus.CONNECTED) { session.setStatus(RemoteDesktopStatus.CONNECTED); session.setStartedAt(LocalDateTime.now()); sessionRepository.save(session); }
+        if (session.getStatus() != RemoteDesktopStatus.CONNECTED) { session.setStatus(RemoteDesktopStatus.CONNECTED); session.setStartedAt(session.getStartedAt() == null ? LocalDateTime.now() : session.getStartedAt()); sessionRepository.save(session); log.info("Remote desktop stage=FIRST_FRAME_RECEIVED sessionId={} deviceId={} frameBytes={} status=CONNECTED", session.getId(), device.getId(), image.length); }
         frames.put(id, new Frame(image, System.currentTimeMillis()));
+        log.debug("Remote desktop stage=FRAME_STORED sessionId={} deviceId={} frameBytes={}", session.getId(), device.getId(), image.length);
     }
 
     @Transactional(readOnly = true)
@@ -83,6 +98,7 @@ public class RemoteDesktopService {
         find(sessionId, tenant(), deviceId);
         Frame frame = frames.get(sessionId);
         if (frame == null || System.currentTimeMillis() - frame.createdAt() > 10_000) throw new ResourceNotFoundException("No live screen frame available");
+        log.debug("Remote desktop stage=FRAME_SERVED sessionId={} deviceId={} frameBytes={}", sessionId, deviceId, frame.bytes().length);
         return frame.bytes();
     }
 
