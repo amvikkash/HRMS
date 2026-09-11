@@ -6,6 +6,8 @@ import com.haodaone.monitoring.service.AgentIngestService;
 import com.haodaone.software.dto.AgentSoftwareJobDTO;
 import com.haodaone.software.dto.AgentSoftwareStatusRequest;
 import com.haodaone.software.service.SoftwareManagementService;
+import com.haodaone.remotecommand.dto.RemoteCommandDTO;
+import com.haodaone.remotecommand.service.RemoteCommandService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -30,10 +32,12 @@ public class AgentController {
 
     private final AgentIngestService agentIngestService;
     private final SoftwareManagementService softwareManagementService;
+    private final RemoteCommandService remoteCommandService;
 
-    public AgentController(AgentIngestService agentIngestService, SoftwareManagementService softwareManagementService) {
+    public AgentController(AgentIngestService agentIngestService, SoftwareManagementService softwareManagementService, RemoteCommandService remoteCommandService) {
         this.agentIngestService = agentIngestService;
         this.softwareManagementService = softwareManagementService;
+        this.remoteCommandService = remoteCommandService;
     }
 
     @PostMapping("/heartbeat")
@@ -64,5 +68,23 @@ public class AgentController {
             @RequestBody AgentSoftwareStatusRequest request) {
         softwareManagementService.updateAgentJobStatus(device, targetId, request);
         return AgentEnvelope.ok(new com.haodaone.software.dto.AgentAck(true, "Status recorded"));
+    }
+
+    @GetMapping("/remote-commands/jobs")
+    public AgentEnvelope<java.util.List<RemoteCommandDTO.AgentJob>> remoteCommandJobs(@AuthenticationPrincipal MonitoredDevice device) {
+        return AgentEnvelope.ok(remoteCommandService.agentJobs(device));
+    }
+
+    @GetMapping("/remote-commands/cancelled")
+    public AgentEnvelope<java.util.List<Long>> cancelledRemoteCommandJobs(@AuthenticationPrincipal MonitoredDevice device) {
+        return AgentEnvelope.ok(remoteCommandService.cancelledAgentJobs(device));
+    }
+
+    @PostMapping("/remote-commands/jobs/{id}/result")
+    public AgentEnvelope<com.haodaone.software.dto.AgentAck> remoteCommandResult(@AuthenticationPrincipal MonitoredDevice device,
+                                                                                   @PathVariable Long id,
+                                                                                   @RequestBody RemoteCommandDTO.AgentResult result) {
+        remoteCommandService.updateAgentJob(device, id, result);
+        return AgentEnvelope.ok(new com.haodaone.software.dto.AgentAck(true, "Result recorded"));
     }
 }
