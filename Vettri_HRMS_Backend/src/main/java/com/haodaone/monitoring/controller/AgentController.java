@@ -10,6 +10,7 @@ import com.haodaone.remotecommand.dto.RemoteCommandDTO;
 import com.haodaone.remotecommand.service.RemoteCommandService;
 import com.haodaone.remotedesktop.dto.RemoteDesktopDTO;
 import com.haodaone.remotedesktop.service.RemoteDesktopService;
+import com.haodaone.remotedesktop.service.RemoteDesktopSignalingService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -36,12 +37,14 @@ public class AgentController {
     private final SoftwareManagementService softwareManagementService;
     private final RemoteCommandService remoteCommandService;
     private final RemoteDesktopService remoteDesktopService;
+    private final RemoteDesktopSignalingService remoteDesktopSignalingService;
 
-    public AgentController(AgentIngestService agentIngestService, SoftwareManagementService softwareManagementService, RemoteCommandService remoteCommandService, RemoteDesktopService remoteDesktopService) {
+    public AgentController(AgentIngestService agentIngestService, SoftwareManagementService softwareManagementService, RemoteCommandService remoteCommandService, RemoteDesktopService remoteDesktopService, RemoteDesktopSignalingService remoteDesktopSignalingService) {
         this.agentIngestService = agentIngestService;
         this.softwareManagementService = softwareManagementService;
         this.remoteCommandService = remoteCommandService;
         this.remoteDesktopService = remoteDesktopService;
+        this.remoteDesktopSignalingService = remoteDesktopSignalingService;
     }
 
     @PostMapping("/heartbeat")
@@ -106,5 +109,28 @@ public class AgentController {
     @GetMapping("/remote-desktop/input")
     public AgentEnvelope<java.util.List<RemoteDesktopDTO.AgentInput>> remoteDesktopInput(@AuthenticationPrincipal MonitoredDevice device) {
         return AgentEnvelope.ok(remoteDesktopService.agentInputs(device));
+    }
+
+    @GetMapping("/remote-desktop/webrtc/events")
+    public AgentEnvelope<java.util.List<RemoteDesktopDTO.WebRtcEvent>> remoteDesktopWebRtcEvents(@AuthenticationPrincipal MonitoredDevice device) {
+        return AgentEnvelope.ok(remoteDesktopSignalingService.agentEvents(device));
+    }
+
+    @PostMapping("/remote-desktop/webrtc/answer")
+    public AgentEnvelope<com.haodaone.software.dto.AgentAck> remoteDesktopWebRtcAnswer(@AuthenticationPrincipal MonitoredDevice device, @RequestBody RemoteDesktopDTO.WebRtcSignal signal) {
+        remoteDesktopSignalingService.agentAnswer(device, signal);
+        return AgentEnvelope.ok(new com.haodaone.software.dto.AgentAck(true, "WebRTC answer recorded"));
+    }
+
+    @PostMapping("/remote-desktop/webrtc/ice")
+    public AgentEnvelope<com.haodaone.software.dto.AgentAck> remoteDesktopWebRtcIce(@AuthenticationPrincipal MonitoredDevice device, @RequestBody RemoteDesktopDTO.WebRtcSignal signal) {
+        remoteDesktopSignalingService.agentIce(device, signal);
+        return AgentEnvelope.ok(new com.haodaone.software.dto.AgentAck(true, "WebRTC ICE recorded"));
+    }
+
+    @PostMapping("/remote-desktop/webrtc/state")
+    public AgentEnvelope<com.haodaone.software.dto.AgentAck> remoteDesktopWebRtcState(@AuthenticationPrincipal MonitoredDevice device, @RequestBody RemoteDesktopDTO.WebRtcSignal signal) {
+        remoteDesktopSignalingService.agentState(device, signal);
+        return AgentEnvelope.ok(new com.haodaone.software.dto.AgentAck(true, "WebRTC state recorded"));
     }
 }

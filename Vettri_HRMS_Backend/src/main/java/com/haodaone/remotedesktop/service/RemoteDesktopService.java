@@ -27,13 +27,15 @@ public class RemoteDesktopService {
     private final RemoteDesktopSessionRepository sessionRepository;
     private final MonitoredDeviceRepository deviceRepository;
     private final AuditLogService auditLogService;
+    private final RemoteDesktopSignalingService signalingService;
     private final Map<Long, Frame> frames = new ConcurrentHashMap<>();
     private final Map<Long, Queue<RemoteDesktopDTO.AgentInput>> inputQueues = new ConcurrentHashMap<>();
 
-    public RemoteDesktopService(RemoteDesktopSessionRepository sessionRepository, MonitoredDeviceRepository deviceRepository, AuditLogService auditLogService) {
+    public RemoteDesktopService(RemoteDesktopSessionRepository sessionRepository, MonitoredDeviceRepository deviceRepository, AuditLogService auditLogService, RemoteDesktopSignalingService signalingService) {
         this.sessionRepository = sessionRepository;
         this.deviceRepository = deviceRepository;
         this.auditLogService = auditLogService;
+        this.signalingService = signalingService;
     }
 
     @Transactional
@@ -48,7 +50,7 @@ public class RemoteDesktopService {
         RemoteDesktopSession saved = sessionRepository.save(session);
         log.info("Remote desktop stage=SESSION_CREATED sessionId={} deviceId={} deviceName={} companyId={} requestedBy={} status={}", saved.getId(), device.getId(), device.getDeviceName(), companyId, requestedBy, saved.getStatus());
         auditLogService.log("RemoteDesktopSession", saved.getId(), "CREATE", "Remote desktop requested for device '" + device.getDeviceName() + "'");
-        return RemoteDesktopDTO.Session.from(saved);
+        return signalingService.initialize(saved);
     }
 
     @Transactional(readOnly = true)
@@ -69,6 +71,7 @@ public class RemoteDesktopService {
     public RemoteDesktopDTO.Session end(Long deviceId, Long sessionId) {
         RemoteDesktopSession session = find(sessionId, tenant(), deviceId);
         if (ACTIVE.contains(session.getStatus())) { session.setStatus(RemoteDesktopStatus.CANCELLED); session.setEndedAt(LocalDateTime.now()); sessionRepository.save(session); frames.remove(sessionId); auditLogService.log("RemoteDesktopSession", sessionId, "END", "Remote desktop session ended"); }
+        signalingService.close(sessionId, "Browser ended session");
         inputQueues.remove(sessionId);
         return RemoteDesktopDTO.Session.from(session);
     }
