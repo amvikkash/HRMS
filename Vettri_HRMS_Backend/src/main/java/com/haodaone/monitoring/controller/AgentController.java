@@ -102,4 +102,9 @@ public class AgentController {
         remoteDesktopService.receiveFrame(device, frame);
         return AgentEnvelope.ok(new com.haodaone.software.dto.AgentAck(true, "Frame recorded"));
     }
+
+    @GetMapping("/remote-desktop/input")
+    public AgentEnvelope<java.util.List<RemoteDesktopDTO.AgentInput>> remoteDesktopInput(@AuthenticationPrincipal MonitoredDevice device) {
+        return AgentEnvelope.ok(remoteDesktopService.agentInputs(device));
+    }
 }

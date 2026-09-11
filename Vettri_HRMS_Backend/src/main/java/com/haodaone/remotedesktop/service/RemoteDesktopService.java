@@ -17,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 @Service
 public class RemoteDesktopService {
@@ -27,6 +28,7 @@ public class RemoteDesktopService {
     private final MonitoredDeviceRepository deviceRepository;
     private final AuditLogService auditLogService;
     private final Map<Long, Frame> frames = new ConcurrentHashMap<>();
+    private final Map<Long, Queue<RemoteDesktopDTO.AgentInput>> inputQueues = new ConcurrentHashMap<>();
 
     public RemoteDesktopService(RemoteDesktopSessionRepository sessionRepository, MonitoredDeviceRepository deviceRepository, AuditLogService auditLogService) {
         this.sessionRepository = sessionRepository;
@@ -67,7 +69,35 @@ public class RemoteDesktopService {
     public RemoteDesktopDTO.Session end(Long deviceId, Long sessionId) {
         RemoteDesktopSession session = find(sessionId, tenant(), deviceId);
         if (ACTIVE.contains(session.getStatus())) { session.setStatus(RemoteDesktopStatus.CANCELLED); session.setEndedAt(LocalDateTime.now()); sessionRepository.save(session); frames.remove(sessionId); auditLogService.log("RemoteDesktopSession", sessionId, "END", "Remote desktop session ended"); }
+        inputQueues.remove(sessionId);
         return RemoteDesktopDTO.Session.from(session);
+    }
+
+    @Transactional
+    public void enqueueInput(Long deviceId, Long sessionId, RemoteDesktopDTO.InputEvent input) {
+        RemoteDesktopSession session = find(sessionId, tenant(), deviceId);
+        if (!ACTIVE.contains(session.getStatus()) || input == null || input.type() == null) throw new BadRequestException("Remote desktop session is not active");
+        String type = input.type().trim().toUpperCase(Locale.ROOT);
+        if (!Set.of("MOVE", "BUTTON_DOWN", "BUTTON_UP", "WHEEL", "KEY_DOWN", "KEY_UP").contains(type)) throw new BadRequestException("Unsupported remote input event");
+        if ((type.equals("MOVE") || type.startsWith("BUTTON")) && (input.x() == null || input.y() == null || input.x() < 0 || input.y() < 0)) throw new BadRequestException("Mouse coordinates are required");
+        if (type.equals("WHEEL") && (input.delta() == null || input.delta() == 0)) throw new BadRequestException("Wheel delta is required");
+        if ((type.equals("KEY_DOWN") || type.equals("KEY_UP")) && (input.virtualKey() == null || input.virtualKey() < 1 || input.virtualKey() > 255)) throw new BadRequestException("Virtual key is required");
+        Queue<RemoteDesktopDTO.AgentInput> queue = inputQueues.computeIfAbsent(sessionId, ignored -> new ConcurrentLinkedQueue<>());
+        if (queue.size() >= 200) throw new BadRequestException("Remote input queue is busy");
+        queue.add(new RemoteDesktopDTO.AgentInput(String.valueOf(sessionId), type, input.x(), input.y(), input.button(), input.delta(), input.virtualKey(), input.keyDown()));
+    }
+
+    @Transactional(readOnly = true)
+    public List<RemoteDesktopDTO.AgentInput> agentInputs(MonitoredDevice device) {
+        if (device == null) return List.of();
+        List<RemoteDesktopDTO.AgentInput> result = new ArrayList<>();
+        for (RemoteDesktopSession session : sessionRepository.findByDevice_IdAndStatusInAndDeletedFalse(device.getId(), List.of(RemoteDesktopStatus.CONNECTING, RemoteDesktopStatus.CONNECTED))) {
+            Queue<RemoteDesktopDTO.AgentInput> queue = inputQueues.get(session.getId());
+            if (queue == null) continue;
+            RemoteDesktopDTO.AgentInput event;
+            while ((event = queue.poll()) != null && result.size() < 50) result.add(event);
+        }
+        return result;
     }
 
     @Transactional
@@ -98,7 +128,9 @@ public class RemoteDesktopService {
         try { image = Base64.getDecoder().decode(payload.imageBase64()); } catch (IllegalArgumentException ex) { throw new BadRequestException("Invalid screen frame"); }
         if (image.length == 0 || image.length > 1_500_000) throw new BadRequestException("Screen frame is too large");
         if (session.getStatus() != RemoteDesktopStatus.CONNECTED) { session.setStatus(RemoteDesktopStatus.CONNECTED); session.setStartedAt(session.getStartedAt() == null ? LocalDateTime.now() : session.getStartedAt()); sessionRepository.save(session); log.info("Remote desktop stage=FIRST_FRAME_RECEIVED sessionId={} deviceId={} frameBytes={} status=CONNECTED", session.getId(), device.getId(), image.length); }
-        frames.put(id, new Frame(image, System.currentTimeMillis()));
+        int screenWidth = payload.screenWidth() == null || payload.screenWidth() < 1 ? 1280 : payload.screenWidth();
+        int screenHeight = payload.screenHeight() == null || payload.screenHeight() < 1 ? 720 : payload.screenHeight();
+        frames.put(id, new Frame(image, screenWidth, screenHeight, System.currentTimeMillis()));
         log.debug("Remote desktop stage=FRAME_STORED sessionId={} deviceId={} frameBytes={}", session.getId(), device.getId(), image.length);
     }
 
@@ -111,8 +143,15 @@ public class RemoteDesktopService {
         return frame.bytes();
     }
 
+    public Frame latestFrameInfo(Long deviceId, Long sessionId) {
+        find(sessionId, tenant(), deviceId);
+        Frame frame = frames.get(sessionId);
+        if (frame == null || System.currentTimeMillis() - frame.createdAt() > 10_000) throw new ResourceNotFoundException("No live screen frame available");
+        return frame;
+    }
+
     public MediaType frameType() { return MediaType.IMAGE_JPEG; }
     private RemoteDesktopSession find(Long sessionId, Long companyId, Long deviceId) { return sessionRepository.findByIdAndCompany_IdAndDevice_IdAndDeletedFalse(sessionId, companyId, deviceId).orElseThrow(() -> new ResourceNotFoundException("Remote desktop session not found: " + sessionId)); }
     private Long tenant() { Long id = TenantContext.getCurrentTenant(); if (id == null) throw new BadRequestException("Company context is required"); return id; }
-    private record Frame(byte[] bytes, long createdAt) { }
+    public record Frame(byte[] bytes, int width, int height, long createdAt) { }
 }

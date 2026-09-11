@@ -138,7 +138,7 @@
             configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
             // Restrict allowed headers to common safe headers and Authorization
             configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept", "X-Requested-With", "X-Company-Id"));
-            configuration.setExposedHeaders(List.of("Authorization"));
+            configuration.setExposedHeaders(List.of("Authorization", "X-Remote-Width", "X-Remote-Height"));
             configuration.setAllowCredentials(true);
             UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
             source.registerCorsConfiguration("/**", configuration);
