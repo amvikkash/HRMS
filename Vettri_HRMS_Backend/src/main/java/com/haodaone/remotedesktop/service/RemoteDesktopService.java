@@ -89,6 +89,7 @@ public class RemoteDesktopService {
             throw new BadRequestException("Remote input queue is busy");
         }
         queue.add(new RemoteDesktopDTO.AgentInput(String.valueOf(sessionId), type, input.x(), input.y(), input.button(), input.delta(), input.virtualKey(), input.keyDown()));
+        log.info("Remote desktop input stage=QUEUED sessionId={} deviceId={} type={} virtualKey={} queueSize={}", sessionId, deviceId, type, input.virtualKey(), queue.size());
     }
 
     @Transactional(readOnly = true)
@@ -101,6 +102,7 @@ public class RemoteDesktopService {
             RemoteDesktopDTO.AgentInput event;
             while ((event = queue.poll()) != null && result.size() < 50) result.add(event);
         }
+        if (!result.isEmpty()) log.info("Remote desktop input stage=AGENT_DELIVERY deviceId={} eventCount={}", device.getId(), result.size());
         return result;
     }
 
