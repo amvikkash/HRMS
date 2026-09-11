@@ -54,6 +54,15 @@ public class RemoteDesktopService {
         return RemoteDesktopDTO.Session.from(find(sessionId, tenant(), deviceId));
     }
 
+    @Transactional(readOnly = true)
+    public List<RemoteDesktopDTO.Session> list(Long deviceId) {
+        Long companyId = tenant();
+        deviceRepository.findByIdAndCompany_IdAndDeletedFalse(deviceId, companyId)
+                .orElseThrow(() -> new ResourceNotFoundException("Device not found in current company: " + deviceId));
+        return sessionRepository.findByCompany_IdAndDevice_IdAndDeletedFalseOrderByCreatedAtDesc(companyId, deviceId)
+                .stream().map(RemoteDesktopDTO.Session::from).toList();
+    }
+
     @Transactional
     public RemoteDesktopDTO.Session end(Long deviceId, Long sessionId) {
         RemoteDesktopSession session = find(sessionId, tenant(), deviceId);

@@ -15,6 +15,7 @@ public class RemoteDesktopController {
     private final RemoteDesktopService service;
     public RemoteDesktopController(RemoteDesktopService service) { this.service = service; }
     @PostMapping("/sessions") public ResponseEntity<RemoteDesktopDTO.Session> start(@PathVariable Long deviceId, @AuthenticationPrincipal CustomUserPrincipal principal) { return ResponseEntity.status(201).body(service.start(deviceId, principal.getId())); }
+    @GetMapping("/sessions") public java.util.List<RemoteDesktopDTO.Session> list(@PathVariable Long deviceId) { return service.list(deviceId); }
     @GetMapping("/sessions/{sessionId}") public RemoteDesktopDTO.Session get(@PathVariable Long deviceId, @PathVariable Long sessionId) { return service.get(deviceId, sessionId); }
     @PostMapping("/sessions/{sessionId}/end") public RemoteDesktopDTO.Session end(@PathVariable Long deviceId, @PathVariable Long sessionId) { return service.end(deviceId, sessionId); }
     @GetMapping(value = "/sessions/{sessionId}/frame", produces = MediaType.IMAGE_JPEG_VALUE) public ResponseEntity<byte[]> frame(@PathVariable Long deviceId, @PathVariable Long sessionId) { return ResponseEntity.ok().contentType(service.frameType()).cacheControl(CacheControl.noStore()).body(service.latestFrame(deviceId, sessionId)); }
