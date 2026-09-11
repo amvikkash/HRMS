@@ -92,7 +92,7 @@ public class RemoteDesktopSignalingService {
 
     @Transactional
     public void agentAnswer(MonitoredDevice device, RemoteDesktopDTO.WebRtcSignal signal) {
-        State state = agentState(device, signal);
+        State state = authorizedAgentState(device, signal);
         requireType(signal, "ANSWER");
         validateSdp(signal.sdp());
         state.toBrowser.add(new RemoteDesktopDTO.WebRtcEvent(signal.sessionId(), "ANSWER", signal.sdp(), null, null, null, null, null));
@@ -100,7 +100,7 @@ public class RemoteDesktopSignalingService {
     }
 
     public void agentIce(MonitoredDevice device, RemoteDesktopDTO.WebRtcSignal signal) {
-        State state = agentState(device, signal);
+        State state = authorizedAgentState(device, signal);
         requireType(signal, "ICE");
         validateCandidate(signal.candidate());
         state.toBrowser.add(new RemoteDesktopDTO.WebRtcEvent(signal.sessionId(), "ICE", null, signal.candidate(), signal.sdpMid(), signal.sdpMLineIndex(), null, null));
@@ -108,7 +108,7 @@ public class RemoteDesktopSignalingService {
 
     @Transactional
     public void agentState(MonitoredDevice device, RemoteDesktopDTO.WebRtcSignal signal) {
-        State state = agentState(device, signal);
+        State state = authorizedAgentState(device, signal);
         String status = signal.status() == null ? "" : signal.status().trim().toUpperCase(Locale.ROOT);
         if (!Set.of("CONNECTED", "FAILED", "DISCONNECTED").contains(status)) throw new BadRequestException("Unsupported WebRTC state");
         RemoteDesktopSession session = session(signal.sessionId(), state);
@@ -165,7 +165,7 @@ public class RemoteDesktopSignalingService {
         return state;
     }
 
-    private State agentState(MonitoredDevice device, RemoteDesktopDTO.WebRtcSignal signal) {
+    private State authorizedAgentState(MonitoredDevice device, RemoteDesktopDTO.WebRtcSignal signal) {
         long sessionId = sessionId(signal);
         State state = states.get(sessionId);
         if (state == null || device == null || !Objects.equals(state.deviceId, device.getId()) || device.getCompany() == null || !Objects.equals(state.companyId, device.getCompany().getId())) throw new ResourceNotFoundException("WebRTC session not found");
