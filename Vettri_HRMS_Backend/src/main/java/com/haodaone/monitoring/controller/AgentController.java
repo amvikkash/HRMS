@@ -8,6 +8,8 @@ import com.haodaone.software.dto.AgentSoftwareStatusRequest;
 import com.haodaone.software.service.SoftwareManagementService;
 import com.haodaone.remotecommand.dto.RemoteCommandDTO;
 import com.haodaone.remotecommand.service.RemoteCommandService;
+import com.haodaone.remotedesktop.dto.RemoteDesktopDTO;
+import com.haodaone.remotedesktop.service.RemoteDesktopService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -33,11 +35,13 @@ public class AgentController {
     private final AgentIngestService agentIngestService;
     private final SoftwareManagementService softwareManagementService;
     private final RemoteCommandService remoteCommandService;
+    private final RemoteDesktopService remoteDesktopService;
 
-    public AgentController(AgentIngestService agentIngestService, SoftwareManagementService softwareManagementService, RemoteCommandService remoteCommandService) {
+    public AgentController(AgentIngestService agentIngestService, SoftwareManagementService softwareManagementService, RemoteCommandService remoteCommandService, RemoteDesktopService remoteDesktopService) {
         this.agentIngestService = agentIngestService;
         this.softwareManagementService = softwareManagementService;
         this.remoteCommandService = remoteCommandService;
+        this.remoteDesktopService = remoteDesktopService;
     }
 
     @PostMapping("/heartbeat")
@@ -86,5 +90,16 @@ public class AgentController {
                                                                                    @RequestBody RemoteCommandDTO.AgentResult result) {
         remoteCommandService.updateAgentJob(device, id, result);
         return AgentEnvelope.ok(new com.haodaone.software.dto.AgentAck(true, "Result recorded"));
+    }
+
+    @GetMapping("/remote-desktop/sessions")
+    public AgentEnvelope<java.util.List<RemoteDesktopDTO.AgentSession>> remoteDesktopSessions(@AuthenticationPrincipal MonitoredDevice device) {
+        return AgentEnvelope.ok(remoteDesktopService.agentRequests(device));
+    }
+
+    @PostMapping("/remote-desktop/frames")
+    public AgentEnvelope<com.haodaone.software.dto.AgentAck> remoteDesktopFrame(@AuthenticationPrincipal MonitoredDevice device, @RequestBody RemoteDesktopDTO.AgentFrame frame) {
+        remoteDesktopService.receiveFrame(device, frame);
+        return AgentEnvelope.ok(new com.haodaone.software.dto.AgentAck(true, "Frame recorded"));
     }
 }
