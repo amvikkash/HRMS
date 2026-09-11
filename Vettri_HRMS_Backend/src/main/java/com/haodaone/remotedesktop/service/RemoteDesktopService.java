@@ -83,7 +83,11 @@ public class RemoteDesktopService {
         if (type.equals("WHEEL") && (input.delta() == null || input.delta() == 0)) throw new BadRequestException("Wheel delta is required");
         if ((type.equals("KEY_DOWN") || type.equals("KEY_UP")) && (input.virtualKey() == null || input.virtualKey() < 1 || input.virtualKey() > 255)) throw new BadRequestException("Virtual key is required");
         Queue<RemoteDesktopDTO.AgentInput> queue = inputQueues.computeIfAbsent(sessionId, ignored -> new ConcurrentLinkedQueue<>());
-        if (queue.size() >= 200) throw new BadRequestException("Remote input queue is busy");
+        if (type.equals("MOVE")) {
+            queue.removeIf(event -> event.type().equals("MOVE"));
+        } else if (queue.size() >= 200) {
+            throw new BadRequestException("Remote input queue is busy");
+        }
         queue.add(new RemoteDesktopDTO.AgentInput(String.valueOf(sessionId), type, input.x(), input.y(), input.button(), input.delta(), input.virtualKey(), input.keyDown()));
     }
 
