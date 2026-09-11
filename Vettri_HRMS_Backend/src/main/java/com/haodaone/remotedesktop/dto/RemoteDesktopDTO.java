@@ -13,7 +13,14 @@ public final class RemoteDesktopDTO {
     }
     public record IceServer(String urls, String username, String credential) { }
     public record WebRtcSignal(String sessionId, String type, String sdp, String candidate, String sdpMid, Integer sdpMLineIndex, String status, String reason) { }
-    public record WebRtcEvent(String sessionId, String type, String sdp, String candidate, String sdpMid, Integer sdpMLineIndex, String status, String reason) { }
+    public record WebRtcEvent(String sessionId, String type, String sdp, String candidate, String sdpMid, Integer sdpMLineIndex, String status, String reason, List<IceServer> iceServers) {
+        public WebRtcEvent(String sessionId, String type, String sdp, String candidate, String sdpMid, Integer sdpMLineIndex, String status, String reason) {
+            this(sessionId, type, sdp, candidate, sdpMid, sdpMLineIndex, status, reason, List.of());
+        }
+        public WebRtcEvent withIceServers(List<IceServer> servers) {
+            return new WebRtcEvent(sessionId, type, sdp, candidate, sdpMid, sdpMLineIndex, status, reason, servers);
+        }
+    }
     public record AgentSession(String sessionId, String action) { }
     public record AgentFrame(String sessionId, String imageBase64, Integer screenWidth, Integer screenHeight) { }
     public record InputEvent(String type, Integer x, Integer y, String button, Integer delta, Integer virtualKey, Boolean keyDown) { }

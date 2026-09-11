@@ -84,7 +84,7 @@ public class RemoteDesktopSignalingService {
         List<RemoteDesktopDTO.WebRtcEvent> result = new ArrayList<>();
         states.forEach((sessionId, state) -> {
             if (Objects.equals(state.deviceId, device.getId()) && Objects.equals(state.companyId, device.getCompany().getId())) {
-                result.addAll(drain(state.toAgent));
+                result.addAll(drain(state.toAgent).stream().map(event -> event.withIceServers(iceServers())).toList());
             }
         });
         return result;
