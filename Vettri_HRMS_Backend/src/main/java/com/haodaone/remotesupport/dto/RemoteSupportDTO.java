@@ -1,0 +1,11 @@
+package com.haodaone.remotesupport.dto;
+import com.haodaone.remotesupport.entity.*;
+import java.time.LocalDateTime;
+public final class RemoteSupportDTO {
+    private RemoteSupportDTO() { }
+    public record Response(Long jobId, Long deviceId, String operation, String status, String version, String ultraViewerId, String rustDeskId, String executablePath, Boolean running, Boolean unattendedEnabled, String errorCode, String errorMessage, String correlationId, LocalDateTime createdAt, LocalDateTime startedAt, LocalDateTime completedAt) {
+        public static Response from(RemoteSupportJob j) { return new Response(j.getId(), j.getDevice().getId(), j.getOperation().name(), j.getStatus().name(), j.getUltraViewerVersion(), j.getUltraViewerId(), j.getUltraViewerId(), j.getExecutablePath(), j.getRunning(), j.getUnattendedEnabled(), j.getErrorCode(), j.getErrorMessage(), j.getCorrelationId(), j.getCreatedAt(), j.getStartedAt(), j.getCompletedAt()); }
+    }
+    public record AgentJob(Long id, String operation, String correlationId, String password, String rustDeskConfig, String installerPath, String installerSha256) { }
+    public record AgentResult(String status, String version, String ultraViewerId, String rustDeskId, String executablePath, Boolean running, Boolean unattendedEnabled, String errorCode, String errorMessage) { }
+}

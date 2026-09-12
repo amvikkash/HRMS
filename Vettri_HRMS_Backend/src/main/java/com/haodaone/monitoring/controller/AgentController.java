@@ -11,6 +11,8 @@ import com.haodaone.remotecommand.service.RemoteCommandService;
 import com.haodaone.remotedesktop.dto.RemoteDesktopDTO;
 import com.haodaone.remotedesktop.service.RemoteDesktopService;
 import com.haodaone.remotedesktop.service.RemoteDesktopSignalingService;
+import com.haodaone.remotesupport.dto.RemoteSupportDTO;
+import com.haodaone.remotesupport.service.RemoteSupportService;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -38,13 +40,15 @@ public class AgentController {
     private final RemoteCommandService remoteCommandService;
     private final RemoteDesktopService remoteDesktopService;
     private final RemoteDesktopSignalingService remoteDesktopSignalingService;
+    private final RemoteSupportService remoteSupportService;
 
-    public AgentController(AgentIngestService agentIngestService, SoftwareManagementService softwareManagementService, RemoteCommandService remoteCommandService, RemoteDesktopService remoteDesktopService, RemoteDesktopSignalingService remoteDesktopSignalingService) {
+    public AgentController(AgentIngestService agentIngestService, SoftwareManagementService softwareManagementService, RemoteCommandService remoteCommandService, RemoteDesktopService remoteDesktopService, RemoteDesktopSignalingService remoteDesktopSignalingService, RemoteSupportService remoteSupportService) {
         this.agentIngestService = agentIngestService;
         this.softwareManagementService = softwareManagementService;
         this.remoteCommandService = remoteCommandService;
         this.remoteDesktopService = remoteDesktopService;
         this.remoteDesktopSignalingService = remoteDesktopSignalingService;
+        this.remoteSupportService = remoteSupportService;
     }
 
     @PostMapping("/heartbeat")
@@ -133,4 +137,10 @@ public class AgentController {
         remoteDesktopSignalingService.agentState(device, signal);
         return AgentEnvelope.ok(new com.haodaone.software.dto.AgentAck(true, "WebRTC state recorded"));
     }
+
+    @GetMapping("/remote-support/jobs")
+    public AgentEnvelope<java.util.List<RemoteSupportDTO.AgentJob>> remoteSupportJobs(@AuthenticationPrincipal MonitoredDevice device) { return AgentEnvelope.ok(remoteSupportService.agentJobs(device)); }
+
+    @PostMapping("/remote-support/jobs/{id}/result")
+    public AgentEnvelope<com.haodaone.software.dto.AgentAck> remoteSupportResult(@AuthenticationPrincipal MonitoredDevice device, @PathVariable Long id, @RequestBody RemoteSupportDTO.AgentResult result) { remoteSupportService.result(device, id, result); return AgentEnvelope.ok(new com.haodaone.software.dto.AgentAck(true, "Remote support result recorded")); }
 }
