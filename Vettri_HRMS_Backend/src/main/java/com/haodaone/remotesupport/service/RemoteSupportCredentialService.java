@@ -25,6 +25,7 @@ public class RemoteSupportCredentialService {
         if (key.length != 32) throw new IllegalStateException("REMOTE_SUPPORT_CREDENTIAL_KEY must decode to 32 bytes");
     }
     public String generate() { byte[] bytes = new byte[24]; random.nextBytes(bytes); return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes); }
+    public boolean isConfigured() { return key != null; }
     public void store(Company company, Long deviceId, String secret, RemoteSupportStatus status) {
         if (key == null) throw new IllegalStateException("REMOTE_SUPPORT_CREDENTIAL_KEY must be configured before remote support provisioning");
         RemoteSupportCredential credential = repository.findByDeviceId(deviceId).orElseGet(RemoteSupportCredential::new);
