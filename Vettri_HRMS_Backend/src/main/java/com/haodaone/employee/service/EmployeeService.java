@@ -56,6 +56,7 @@ public class EmployeeService {
         this.subscriptionService = subscriptionService;
     }
 
+    @Transactional(readOnly = true)
     public List<EmployeeSummaryDTO> listAll(String search) {
         Long companyId = requiredTenant();
         List<Employee> employees = (search == null || search.isBlank())
@@ -71,6 +72,7 @@ public class EmployeeService {
      * unpaginated list and would need rework to handle paging themselves;
      * this is purely additive.
      */
+    @Transactional(readOnly = true)
     public PageResponse<EmployeeSummaryDTO> listPaged(String search, Long departmentId, int page, int size) {
         Long companyId = requiredTenant();
         int safeSize = Math.min(Math.max(size, 1), 100);

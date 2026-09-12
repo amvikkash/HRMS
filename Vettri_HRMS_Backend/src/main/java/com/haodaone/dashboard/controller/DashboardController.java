@@ -98,6 +98,7 @@ public class DashboardController {
      */
     @GetMapping("/my-team")
     @PreAuthorize("!hasRole('EMPLOYEE') and hasAuthority('LEAVE_APPROVE')")
+    @Transactional(readOnly = true)
     public TeamDashboardDTO myTeam() {
         String username = SecurityContextHolder.getContext().getAuthentication().getName();
         Employee me = employeeRepository.findByUser_UsernameAndDeletedFalse(username).orElse(null);

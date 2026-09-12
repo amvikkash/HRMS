@@ -10,6 +10,7 @@ import com.haodaone.employee.repository.EmployeeRepository;
 import com.haodaone.leave.repository.HolidayRepository;
 import com.haodaone.leave.repository.LeaveRequestRepository;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -64,6 +65,7 @@ public class AttendanceController {
      */
     @GetMapping("/exceptions")
     @PreAuthorize("!hasRole('EMPLOYEE') and hasAuthority('ATTENDANCE_VIEW')")
+    @Transactional(readOnly = true)
     public AttendanceExceptionDTO exceptions(@RequestParam(required = false) String date) {
         Long companyId = requiredTenant();
         LocalDate targetDate = date != null ? LocalDate.parse(date) : LocalDate.now();
