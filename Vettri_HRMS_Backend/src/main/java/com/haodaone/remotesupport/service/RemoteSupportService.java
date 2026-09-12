@@ -28,12 +28,12 @@ public class RemoteSupportService {
         if (operation != RemoteSupportOperation.DETECT && credentials.isConfigured()) {
             credentials.store(device.getCompany(), deviceId, credentials.generate(), RemoteSupportStatus.QUEUED);
         }
-        RemoteSupportJob job=new RemoteSupportJob(); job.setCompany(device.getCompany()); job.setDevice(device); job.setRequestedBy(userId); job.setOperation(operation); job.setCorrelationId(UUID.randomUUID().toString()); RemoteSupportJob saved=jobs.save(job);
+        RemoteSupportJob job=new RemoteSupportJob(); job.setCompany(device.getCompany()); job.setDevice(device); job.setRequestedBy(userId); job.setOperation(operation); job.setStatus(RemoteSupportStatus.JOB_CREATED); job.setCorrelationId(UUID.randomUUID().toString()); RemoteSupportJob saved=jobs.save(job);
         audit.log("RemoteSupportJob",saved.getId(),"REQUEST","Remote support "+operation+" requested for device '"+device.getDeviceName()+"'"); return RemoteSupportDTO.Response.from(saved);
     }
     @Transactional(readOnly=true) public List<RemoteSupportDTO.Response> list(Long deviceId){ ensure(deviceId); return jobs.findByCompany_IdAndDevice_IdAndDeletedFalseOrderByCreatedAtDesc(tenant(),deviceId).stream().map(RemoteSupportDTO.Response::from).toList(); }
     @Transactional(readOnly=true) public RemoteSupportDTO.Response get(Long deviceId,Long jobId){ return RemoteSupportDTO.Response.from(find(jobId,deviceId)); }
-    @Transactional(readOnly=true) public List<RemoteSupportDTO.AgentJob> agentJobs(MonitoredDevice device){ if(device==null||device.getId()==null)return List.of(); return jobs.findByDevice_IdAndStatusAndDeletedFalseOrderByCreatedAtAsc(device.getId(),RemoteSupportStatus.QUEUED).stream().map(job -> {
+    @Transactional(readOnly=true) public List<RemoteSupportDTO.AgentJob> agentJobs(MonitoredDevice device){ if(device==null||device.getId()==null)return List.of(); return jobs.findByDevice_IdAndStatusInAndDeletedFalseOrderByCreatedAtAsc(device.getId(), List.of(RemoteSupportStatus.QUEUED, RemoteSupportStatus.JOB_CREATED)).stream().map(job -> {
         String password = null;
         if ((job.getOperation()==RemoteSupportOperation.CONFIGURE || job.getOperation()==RemoteSupportOperation.ROTATE) && credentials.isConfigured()) {
             password = credentials.decryptForAgent(device.getId());
