@@ -42,7 +42,10 @@ public class RemoteSupportService {
     }).toList(); }
     @Transactional public void result(MonitoredDevice device,Long id,RemoteSupportDTO.AgentResult result){ RemoteSupportJob job=jobs.findByIdAndDevice_IdAndDeletedFalse(id,device.getId()).orElseThrow(()->new ResourceNotFoundException("Remote support job not found")); if(!Objects.equals(job.getCompany().getId(),device.getCompany().getId()))throw new ResourceNotFoundException("Remote support job not found");
         RemoteSupportStatus status;
-        String statusText = result == null || result.status() == null ? "" : result.status().trim();
+        String statusText = result == null ? "" : (result.provisioningState() != null && !result.provisioningState().isBlank()
+                ? result.provisioningState()
+                : result.status() == null ? "" : result.status());
+        statusText = statusText == null ? "" : statusText.trim();
         try {
             status = RemoteSupportStatus.valueOf(statusText.isBlank() ? "FAILED" : statusText.toUpperCase(Locale.ROOT));
         } catch (Exception ex) {
