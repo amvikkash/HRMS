@@ -29,10 +29,10 @@ public class RemoteSupportService {
             credentials.store(device.getCompany(), deviceId, credentials.generate(), RemoteSupportStatus.QUEUED);
         }
         RemoteSupportJob job=new RemoteSupportJob(); job.setCompany(device.getCompany()); job.setDevice(device); job.setRequestedBy(userId); job.setOperation(operation); job.setStatus(RemoteSupportStatus.JOB_CREATED); job.setCorrelationId(UUID.randomUUID().toString()); RemoteSupportJob saved=jobs.save(job);
-        audit.log("RemoteSupportJob",saved.getId(),"REQUEST","Remote support "+operation+" requested for device '"+device.getDeviceName()+"'"); return RemoteSupportDTO.Response.from(saved);
+        audit.log("RemoteSupportJob",saved.getId(),"REQUEST","Remote support "+operation+" requested for device '"+device.getDeviceName()+"'"); return RemoteSupportDTO.Response.from(saved, null);
     }
-    @Transactional(readOnly=true) public List<RemoteSupportDTO.Response> list(Long deviceId){ ensure(deviceId); return jobs.findByCompany_IdAndDevice_IdAndDeletedFalseOrderByCreatedAtDesc(tenant(),deviceId).stream().map(RemoteSupportDTO.Response::from).toList(); }
-    @Transactional(readOnly=true) public RemoteSupportDTO.Response get(Long deviceId,Long jobId){ return RemoteSupportDTO.Response.from(find(jobId,deviceId)); }
+    @Transactional(readOnly=true) public List<RemoteSupportDTO.Response> list(Long deviceId){ ensure(deviceId); return jobs.findByCompany_IdAndDevice_IdAndDeletedFalseOrderByCreatedAtDesc(tenant(),deviceId).stream().map(job -> RemoteSupportDTO.Response.from(job, decryptPasswordForJob(job))).toList(); }
+    @Transactional(readOnly=true) public RemoteSupportDTO.Response get(Long deviceId,Long jobId){ RemoteSupportJob job=find(jobId,deviceId); return RemoteSupportDTO.Response.from(job, decryptPasswordForJob(job)); }
     @Transactional(readOnly=true) public List<RemoteSupportDTO.AgentJob> agentJobs(MonitoredDevice device){ if(device==null||device.getId()==null)return List.of(); return jobs.findByDevice_IdAndStatusInAndDeletedFalseOrderByCreatedAtAsc(device.getId(), List.of(RemoteSupportStatus.QUEUED, RemoteSupportStatus.JOB_CREATED)).stream().map(job -> {
         String password = null;
         if ((job.getOperation()==RemoteSupportOperation.CONFIGURE || job.getOperation()==RemoteSupportOperation.ROTATE) && credentials.isConfigured()) {
@@ -67,6 +67,17 @@ public class RemoteSupportService {
     @Transactional public RemoteSupportDTO.Response disable(Long deviceId,Long userId){ return request(deviceId,RemoteSupportOperation.DISABLE,userId); }
     private RemoteSupportJob find(Long id,Long deviceId){return jobs.findByIdAndCompany_IdAndDevice_IdAndDeletedFalse(id,tenant(),deviceId).orElseThrow(()->new ResourceNotFoundException("Remote support job not found"));}
     private void ensure(Long id){devices.findByIdAndCompany_IdAndDeletedFalse(id,tenant()).orElseThrow(()->new ResourceNotFoundException("Device not found"));}
+    private String decryptPasswordForJob(RemoteSupportJob job){
+        if (job == null || job.getDevice() == null || job.getDevice().getId() == null) return null;
+        if ((job.getOperation() == RemoteSupportOperation.CONFIGURE || job.getOperation() == RemoteSupportOperation.ROTATE) && credentials.isConfigured()) {
+            try {
+                return credentials.decryptForAgent(job.getDevice().getId());
+            } catch (Exception ex) {
+                return null;
+            }
+        }
+        return null;
+    }
     private Long tenant(){Long id=TenantContext.getCurrentTenant();if(id==null)throw new BadRequestException("Company context is required");return id;}
     private String limit(String v,int max){return v==null?null:v.length()<=max?v:v.substring(0,max);}
 }
