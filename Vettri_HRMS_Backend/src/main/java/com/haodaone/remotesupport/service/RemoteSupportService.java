@@ -51,16 +51,27 @@ public class RemoteSupportService {
         } catch (Exception ex) {
             status = RemoteSupportStatus.FAILED;
         }
+        RemoteSupportStatus previousStatus = job.getStatus();
+        boolean previousTerminal = previousStatus == RemoteSupportStatus.READY || previousStatus == RemoteSupportStatus.FAILED;
+        if (previousTerminal && status != previousStatus) {
+            audit.log("RemoteSupportJob", id, "STALE_RESULT_IGNORED", "Ignored terminal state transition from " + previousStatus + " to " + status);
+            return;
+        }
+
         job.setStatus(status);
         job.setUltraViewerVersion(limit(result.version(),100));
         job.setUltraViewerId(limit(result.ultraViewerId()!=null?result.ultraViewerId():result.rustDeskId(),100));
         job.setExecutablePath(limit(result.executablePath(),500));
         job.setRunning(result.running());
         job.setUnattendedEnabled(result.unattendedEnabled());
-        job.setErrorCode(limit(result.errorCode(),80));
-        job.setErrorMessage(limit(result.errorMessage(),2000));
+        job.setErrorCode(status == RemoteSupportStatus.READY ? null : limit(result.errorCode(),80));
+        job.setErrorMessage(status == RemoteSupportStatus.READY ? null : limit(result.errorMessage(),2000));
         if(job.getStartedAt()==null)job.setStartedAt(LocalDateTime.now());
-        job.setCompletedAt(LocalDateTime.now());
+        if (status == RemoteSupportStatus.READY || status == RemoteSupportStatus.FAILED) {
+            job.setCompletedAt(LocalDateTime.now());
+        } else {
+            job.setCompletedAt(null);
+        }
         jobs.save(job);
         audit.log("RemoteSupportJob",id,"RESULT","Remote support result status="+status);
     }
