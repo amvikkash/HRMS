@@ -3,6 +3,7 @@ package com.haodaone.remotesupport.service;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+
 @Component
 public class RustDeskConfiguration {
     private final String idServer;
@@ -20,5 +21,11 @@ public class RustDeskConfiguration {
         this.idServer=idServer; this.relayServer=relayServer; this.publicKey=publicKey; this.configString=configString; this.installerPath=installerPath; this.installerSha256=installerSha256;
     }
     public String idServer(){return idServer;} public String relayServer(){return relayServer;} public String publicKey(){return publicKey;} public String configString(){return configString;} public String installerPath(){return installerPath;} public String installerSha256(){return installerSha256;}
-    public boolean configured(){return !idServer.isBlank()&&!relayServer.isBlank()&&!publicKey.isBlank()&&!configString.isBlank();}
+    public String approvedConfigString(){return isValidConfigString(configString) ? configString : "";}
+    private boolean isValidConfigString(String value){
+        if(value==null||value.isBlank())return false;
+        String trimmed=value.trim();
+        return !trimmed.matches("\\d{1,3}(?:\\.\\d{1,3}){3}") && !trimmed.contains(":");
+    }
+    public boolean configured(){return !idServer.isBlank()&&!relayServer.isBlank()&&!publicKey.isBlank()&&!approvedConfigString().isBlank();}
 }

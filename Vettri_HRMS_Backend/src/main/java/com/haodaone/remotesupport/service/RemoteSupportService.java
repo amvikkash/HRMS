@@ -38,7 +38,7 @@ public class RemoteSupportService {
         if ((job.getOperation()==RemoteSupportOperation.CONFIGURE || job.getOperation()==RemoteSupportOperation.ROTATE) && credentials.isConfigured()) {
             password = credentials.decryptForAgent(device.getId());
         }
-        return new RemoteSupportDTO.AgentJob(job.getId(), job.getOperation().name(), job.getCorrelationId(), password, rustDesk.configString(), rustDesk.installerPath(), rustDesk.installerSha256());
+        return new RemoteSupportDTO.AgentJob(job.getId(), job.getOperation().name(), job.getCorrelationId(), password, rustDesk.approvedConfigString(), rustDesk.installerPath(), rustDesk.installerSha256());
     }).toList(); }
     @Transactional public void result(MonitoredDevice device,Long id,RemoteSupportDTO.AgentResult result){ RemoteSupportJob job=jobs.findByIdAndDevice_IdAndDeletedFalse(id,device.getId()).orElseThrow(()->new ResourceNotFoundException("Remote support job not found")); if(!Objects.equals(job.getCompany().getId(),device.getCompany().getId()))throw new ResourceNotFoundException("Remote support job not found");
         RemoteSupportStatus status;
