@@ -26,11 +26,33 @@ export default function RemoteDesktop() {
   const sessionsQuery = useQuery({ queryKey: ['remote-desktop-sessions', id], queryFn: () => monitoringApi.remoteDesktopSessions(id), refetchInterval: 3000 });
   const sessionQuery = useQuery({ queryKey: ['remote-desktop-session', id, session?.sessionId], queryFn: () => monitoringApi.remoteDesktopSession(id, session.sessionId), enabled: Boolean(session?.sessionId), refetchInterval: 1500 });
   const frameQuery = useQuery({ queryKey: ['remote-desktop-frame', id, session?.sessionId], queryFn: () => monitoringApi.remoteDesktopFrame(id, session.sessionId), enabled: ['REQUESTED', 'CONNECTING', 'CONNECTED'].includes(session?.status) || ['REQUESTED', 'CONNECTING', 'CONNECTED'].includes(sessionQuery.data?.status), refetchInterval: 350, retry: false });
-  const start = useMutation({ mutationFn: () => monitoringApi.startRemoteDesktop(id), onSuccess: setSession });
+  const start = useMutation({ mutationFn: () => monitoringApi.startRemoteDesktop(id), onSuccess: (value) => { staleSessionIdRef.current = null; setSession(value); } });
   const end = useMutation({ mutationFn: () => monitoringApi.endRemoteDesktop(id, session.sessionId), onSuccess: (value) => { setSession(value); setControlActive(false); queryClient.removeQueries({ queryKey: ['remote-desktop-frame', id] }); } });
   const sendInput = useMutation({ mutationFn: (input) => monitoringApi.remoteDesktopInput(id, session.sessionId, input) });
   const device = deviceQuery.data;
   const currentSession = sessionQuery.data || session;
+  const staleSessionIdRef = useRef(null);
+
+  function isStaleSessionError(error) {
+    const status = error?.response?.status;
+    const message = error?.response?.data?.message || error?.message || '';
+    return status === 404 && /authorization not found/i.test(message);
+  }
+
+  function invalidateStaleSession(sessionId) {
+    if (!sessionId || staleSessionIdRef.current === sessionId) return;
+    staleSessionIdRef.current = sessionId;
+    console.warn('[RemoteDesktop] Invalidating stale WebRTC session', { deviceId: id, sessionId });
+    peerRef.current?.close();
+    peerRef.current = null;
+    webRtcStartRef.current = null;
+    setWebRtcConnected(false);
+    setControlActive(false);
+    if (videoRef.current) videoRef.current.srcObject = null;
+    queryClient.removeQueries({ queryKey: ['remote-desktop-frame', id] });
+    queryClient.removeQueries({ queryKey: ['remote-desktop-session', id] });
+    setSession((previous) => (previous?.sessionId === sessionId ? null : previous));
+  }
 
   useEffect(() => {
     const signalingToken = session?.signalingToken;
@@ -58,7 +80,9 @@ export default function RemoteDesktop() {
       monitoringApi.remoteDesktopWebRtcIce(id, sessionId, signalingToken, {
         sessionId: String(sessionId), type: 'ICE', candidate: event.candidate.candidate,
         sdpMid: event.candidate.sdpMid, sdpMLineIndex: event.candidate.sdpMLineIndex,
-      }).catch(() => {});
+      }).catch((error) => {
+        if (isStaleSessionError(error)) invalidateStaleSession(sessionId);
+      });
     };
     (async () => {
       try {
@@ -74,6 +98,10 @@ export default function RemoteDesktop() {
           await new Promise((resolve) => setTimeout(resolve, 250));
         }
       } catch (error) {
+        if (isStaleSessionError(error)) {
+          invalidateStaleSession(sessionId);
+          return;
+        }
         console.warn('[RemoteDesktop] WebRTC unavailable; JPEG fallback remains active', error);
         setWebRtcConnected(false);
       }
@@ -88,11 +116,19 @@ export default function RemoteDesktop() {
     };
   }, [id, session?.sessionId, session?.signalingToken, currentSession?.status]);
 
-  useEffect(() => { if (sessionQuery.data) setSession(sessionQuery.data); }, [sessionQuery.data]);
+  useEffect(() => {
+    if (!sessionQuery.data) return;
+    const nextSessionId = sessionQuery.data?.sessionId ?? sessionQuery.data?.id;
+    if (staleSessionIdRef.current && staleSessionIdRef.current === nextSessionId) return;
+    setSession((previous) => ({ ...sessionQuery.data, signalingToken: previous?.signalingToken || sessionQuery.data.signalingToken, iceServers: previous?.iceServers?.length ? previous.iceServers : sessionQuery.data.iceServers }));
+  }, [sessionQuery.data]);
   useEffect(() => {
     if (session || !sessionsQuery.data?.length) return;
     const activeSession = sessionsQuery.data.find((item) => ['REQUESTED', 'CONNECTING', 'CONNECTED'].includes(item.status));
-    if (activeSession) setSession(activeSession);
+    if (!activeSession) return;
+    const activeSessionId = activeSession?.sessionId ?? activeSession?.id;
+    if (staleSessionIdRef.current && staleSessionIdRef.current === activeSessionId) return;
+    setSession(activeSession);
   }, [session, sessionsQuery.data]);
   useEffect(() => { if (frameQuery.data) { setFrameSize({ width: frameQuery.data.width, height: frameQuery.data.height }); console.info('[RemoteDesktop] first/live frame received', { deviceId: id, sessionId: session?.sessionId, bytes: frameQuery.data.blob.size }); } }, [frameQuery.data, id, session?.sessionId]);
   useEffect(() => {
@@ -105,7 +141,11 @@ export default function RemoteDesktop() {
   useEffect(() => { if (controlActive) surfaceRef.current?.focus(); }, [controlActive]);
   useEffect(() => () => { if (frameUrl) URL.revokeObjectURL(frameUrl); }, [frameUrl]);
 
-  function startSession() { if (isDeviceOnline(device)) start.mutate(); }
+  function startSession() {
+    if (!isDeviceOnline(device)) return;
+    staleSessionIdRef.current = null;
+    start.mutate();
+  }
   const active = currentSession && ['REQUESTED', 'CONNECTING', 'CONNECTED'].includes(currentSession.status);
   useEffect(() => {
     if (!controlActive || !active) return undefined;

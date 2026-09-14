@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
-import { ArrowLeft, Monitor, AppWindow, Activity, KeyRound, Copy, Terminal, MonitorUp } from 'lucide-react';
+import { ArrowLeft, Monitor, AppWindow, Activity, KeyRound, Copy, Terminal, MonitorUp, ShieldCheck, RefreshCw, Ban, Network } from 'lucide-react';
 import {
   monitoringApi,
   getDeviceName,
@@ -35,6 +35,7 @@ export default function DeviceDetails() {
   const [otp, setOtp] = useState('');
   const [reason, setReason] = useState('');
   const [newToken, setNewToken] = useState('');
+  const supportKey = ['remote-support-jobs', id];
 
   const {
     data: device,
@@ -59,6 +60,52 @@ export default function DeviceDetails() {
       queryClient.invalidateQueries({ queryKey: ['monitoring-token-history', id] });
     },
   });
+  const supportQuery = useQuery({
+    queryKey: supportKey,
+    queryFn: () => monitoringApi.remoteSupportJobs(id),
+    refetchInterval: (query) => {
+      const latestSupport = [...(query.state.data || [])].sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0))[0];
+      return latestSupport && ['READY', 'FAILED'].includes(latestSupport.status) ? false : 3000;
+    },
+  });
+  const supportMutation = useMutation({ mutationFn: (operation) => ({ configure: monitoringApi.configureRemoteSupport, detect: monitoringApi.detectRemoteSupport, rotate: monitoringApi.rotateRemoteSupport, disable: monitoringApi.disableRemoteSupport }[operation](id)), onSuccess: () => queryClient.invalidateQueries({ queryKey: supportKey }) });
+  const latestSupport = useMemo(
+    () => [...(supportQuery.data || [])].sort((a, b) => new Date(b.updatedAt || b.createdAt || 0) - new Date(a.updatedAt || a.createdAt || 0))[0],
+    [supportQuery.data]
+  );
+  const rustDeskConnectUrl = latestSupport?.status === 'READY' && latestSupport?.rustDeskId
+    ? `rustdesk://connect/${encodeURIComponent(latestSupport.rustDeskId.trim())}`
+    : null;
+  const supportSummaryStatus = latestSupport?.status === 'READY'
+    ? 'READY'
+    : latestSupport?.status === 'FAILED'
+      ? 'FAILED'
+      : latestSupport
+        ? 'PROVISIONING'
+        : 'NOT_CONFIGURED';
+  const supportStages = [
+    'CONFIGURE_CLICKED',
+    'BACKEND_RECEIVED',
+    'JOB_CREATED',
+    'AGENT_REACHED',
+    'AGENT_STARTED',
+    'CREDENTIAL_READY',
+    'RUSTDESK_PROVISIONING',
+    'PASSWORD_CONFIGURED',
+    'SERVER_CONFIGURED',
+    'SERVICE_READY',
+    'ID_VERIFIED',
+    'RESULT_SENT',
+    'BACKEND_RESULT_ACCEPTED',
+  ];
+  const terminalStage = latestSupport?.status === 'FAILED' ? 'FAILED' : latestSupport?.status === 'READY' ? 'READY' : null;
+  const displayedStages = terminalStage ? [...supportStages, terminalStage] : supportStages;
+  const currentStageIndex = latestSupport?.provisioningStage ? displayedStages.indexOf(latestSupport.provisioningStage) : -1;
+
+  const handleRustDeskConnect = () => {
+    if (!rustDeskConnectUrl) return;
+    window.location.href = rustDeskConnectUrl;
+  };
 
   const recentSessions = useMemo(
     () => [...(sessions || [])].sort((a, b) => new Date(getSessionStart(b)) - new Date(getSessionStart(a))).slice(0, 25),
@@ -162,6 +209,180 @@ export default function DeviceDetails() {
       )}
 
       <div className="row g-3">
+        <div className="col-12">
+          <Card title="Remote Support" subtitle="RustDesk Remote Support is separate from the existing Vettri Remote Desktop WebRTC flow. The Agent provisions and manages RustDesk locally, and this screen shows the RustDesk ID plus the configured password for the current READY session.">
+            <div className="d-flex align-items-center justify-content-between flex-wrap gap-3">
+              <div>
+                <div className="d-flex align-items-center gap-2">
+                  <ShieldCheck size={18} />
+                  <strong>{supportSummaryStatus}</strong>
+                </div>
+                <div className="text-secondary-hz" style={{ fontSize: 13 }}>
+                  {latestSupport?.provisioningStage
+                    ? `Current stage: ${latestSupport.provisioningStage}`
+                    : latestSupport?.version
+                      ? `RustDesk ${latestSupport.version}`
+                      : 'RustDesk version not verified'}
+                </div>
+                {latestSupport?.errorMessage && (
+                  <div className="text-danger mt-2" style={{ fontSize: 13 }}>
+                    Error: {latestSupport.errorMessage}
+                  </div>
+                )}
+                {currentStageIndex >= 0 && (
+                  <div className="mt-3 d-flex flex-column gap-2">
+                    {displayedStages.map((stage, index) => {
+                      const completed = currentStageIndex >= index && stage !== 'FAILED';
+                      const active = currentStageIndex === index;
+                      const failed = latestSupport?.status === 'FAILED' && stage === 'FAILED';
+
+                      return (
+                        <div key={stage} className="d-flex align-items-center gap-2" style={{ fontSize: 12 }}>
+                          <span
+                            style={{
+                              width: 10,
+                              height: 10,
+                              borderRadius: '50%',
+                              background: failed ? '#dc2626' : completed ? '#16a34a' : active ? '#f59e0b' : '#d1d5db',
+                              display: 'inline-block',
+                              boxShadow: active ? '0 0 0 4px rgba(245, 158, 11, 0.15)' : 'none',
+                            }}
+                          />
+                          <span style={{ color: failed ? '#b91c1c' : completed ? '#166534' : active ? '#b45309' : 'var(--hz-text-secondary)' }}>
+                            {stage}
+                          </span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {latestSupport?.rustDeskId && latestSupport?.status === 'READY' && (
+                  <div className="mt-2">
+                    <div className="text-secondary-hz" style={{ fontSize: 13, marginBottom: 6 }}>RustDesk ID</div>
+                    <div className="d-flex align-items-center gap-2">
+                      <code style={{ fontSize: 13, padding: '4px 8px', background: 'var(--hz-gray-50)', borderRadius: 4, fontFamily: 'monospace', fontWeight: 600 }}>
+                        {latestSupport.rustDeskId.replace(/(\d{3})(?=\d)/g, '$1 ')}
+                      </code>
+                      <Button
+                        size="xs"
+                        variant="secondary"
+                        icon={Copy}
+                        onClick={() => {
+                          navigator.clipboard.writeText(latestSupport.rustDeskId);
+                          // Could add toast notification here
+                        }}
+                        aria-label="Copy RustDesk ID"
+                      >
+                        Copy
+                      </Button>
+                    </div>
+                    {latestSupport?.rustDeskPassword && (
+                      <div className="mt-3">
+                        <div className="text-secondary-hz" style={{ fontSize: 13, marginBottom: 6 }}>RustDesk Password</div>
+                        <div className="d-flex align-items-center gap-2">
+                          <code style={{ fontSize: 13, padding: '4px 8px', background: 'var(--hz-gray-50)', borderRadius: 4, fontFamily: 'monospace', fontWeight: 600 }}>
+                            {latestSupport.rustDeskPassword}
+                          </code>
+                          <Button
+                            size="xs"
+                            variant="secondary"
+                            icon={Copy}
+                            onClick={() => {
+                              navigator.clipboard.writeText(latestSupport.rustDeskPassword);
+                            }}
+                            aria-label="Copy RustDesk Password"
+                          >
+                            Copy
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                    <div className="text-secondary-hz mt-2" style={{ fontSize: 12, lineHeight: 1.5 }}>
+                      This opens the installed RustDesk client using the current READY RustDesk ID and password shown above.
+                    </div>
+                  </div>
+                )}
+                {latestSupport?.errorMessage && (
+                  <div className="text-danger mt-2" style={{ fontSize: 13 }}>
+                    Error: {latestSupport.errorMessage}
+                  </div>
+                )}
+              </div>
+              <div className="d-flex gap-2 flex-wrap">
+                {latestSupport?.status === 'READY' && latestSupport?.rustDeskId && (
+                  <Button
+                    size="sm"
+                    icon={Network}
+                    disabled={!isDeviceOnline(device) || supportMutation.isPending || !rustDeskConnectUrl}
+                    onClick={handleRustDeskConnect}
+                  >
+                    Connect via RustDesk
+                  </Button>
+                )}
+                {latestSupport?.status === 'READY' ? (
+                  <>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      icon={ShieldCheck}
+                      disabled={!isDeviceOnline(device) || supportMutation.isPending}
+                      onClick={() => supportMutation.mutate('configure')}
+                    >
+                      Reconfigure
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      icon={KeyRound}
+                      disabled={!isDeviceOnline(device) || supportMutation.isPending}
+                      onClick={() => supportMutation.mutate('rotate')}
+                    >
+                      Rotate password
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="danger"
+                      icon={Ban}
+                      disabled={!isDeviceOnline(device) || supportMutation.isPending}
+                      onClick={() => supportMutation.mutate('disable')}
+                    >
+                      Disable
+                    </Button>
+                  </>
+                ) : latestSupport?.status === 'FAILED' ? (
+                  <Button
+                    size="sm"
+                    icon={ShieldCheck}
+                    disabled={!isDeviceOnline(device) || supportMutation.isPending}
+                    onClick={() => supportMutation.mutate('configure')}
+                  >
+                    Retry Configure
+                  </Button>
+                ) : (
+                  <>
+                    <Button
+                      size="sm"
+                      icon={ShieldCheck}
+                      disabled={!isDeviceOnline(device) || supportMutation.isPending}
+                      onClick={() => supportMutation.mutate('configure')}
+                    >
+                      Configure
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="secondary"
+                      icon={RefreshCw}
+                      disabled={!isDeviceOnline(device) || supportMutation.isPending}
+                      onClick={() => supportMutation.mutate('detect')}
+                    >
+                      Detect
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          </Card>
+        </div>
         <div className="col-12 col-xl-4">
           <Card hoverable title="Application Usage Summary" subtitle="Most recent sessions on this device">
             {sessionsLoading && <SkeletonText lines={4} />}

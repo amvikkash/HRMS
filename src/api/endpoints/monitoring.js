@@ -39,6 +39,11 @@ export const monitoringApi = {
     height: Number(res.headers['x-remote-height']) || 720,
   })),
   remoteDesktopInput: (deviceId, sessionId, input) => axiosClient.post(`/api/devices/${deviceId}/remote-desktop/sessions/${sessionId}/input`, input).then((res) => res.data),
+  remoteSupportJobs: (deviceId) => axiosClient.get(`/api/devices/${deviceId}/remote-support`).then((res) => res.data),
+  configureRemoteSupport: (deviceId) => axiosClient.post(`/api/devices/${deviceId}/remote-support/configure`).then((res) => res.data),
+  detectRemoteSupport: (deviceId) => axiosClient.post(`/api/devices/${deviceId}/remote-support/detect`).then((res) => res.data),
+  rotateRemoteSupport: (deviceId) => axiosClient.post(`/api/devices/${deviceId}/remote-support/rotate`).then((res) => res.data),
+  disableRemoteSupport: (deviceId) => axiosClient.post(`/api/devices/${deviceId}/remote-support/disable`).then((res) => res.data),
 };
 
 function getPageContent(data) {
