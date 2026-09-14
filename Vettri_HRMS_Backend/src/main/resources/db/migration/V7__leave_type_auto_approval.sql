@@ -1,2 +1,0 @@
-ALTER TABLE leave_type
-    ADD COLUMN auto_approve BOOLEAN NOT NULL DEFAULT FALSE;
